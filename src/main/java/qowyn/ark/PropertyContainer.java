@@ -16,7 +16,7 @@ public interface PropertyContainer {
 
   public default Property<?> getProperty(String name, int index) {
     for (Property<?> prop : getProperties()) {
-      if (prop.getIndex() == index && prop.getName().equals(name)) {
+      if (prop.getIndex() == index && prop.getNameString().equals(name)) {
         return prop;
       }
     }
@@ -30,7 +30,7 @@ public interface PropertyContainer {
   @SuppressWarnings("unchecked")
   public default <T extends Property<?>> T getTypedProperty(String name, Class<T> clazz, int index) {
     for (Property<?> prop : getProperties()) {
-      if (prop.getIndex() == index && prop.getName().equals(name) && clazz.isInstance(prop)) {
+      if (prop.getIndex() == index && prop.getNameString().equals(name) && clazz.isInstance(prop)) {
         return (T) prop;
       }
     }
@@ -44,7 +44,7 @@ public interface PropertyContainer {
   @SuppressWarnings("unchecked")
   public default <T> T getPropertyValue(String name, Class<T> clazz, int index) {
     for (Property<?> prop : getProperties()) {
-      if (prop.getIndex() == index && prop.getName().equals(name) && clazz.isInstance(prop.getValue())) {
+      if (prop.getIndex() == index && prop.getNameString().equals(name) && clazz.isInstance(prop.getValue())) {
         return (T) prop.getValue();
       }
     }
@@ -55,7 +55,7 @@ public interface PropertyContainer {
 
   public default boolean hasAnyProperty(String name) {
     for (Property<?> prop : getProperties()) {
-      if (prop.getName().equals(name)) {
+      if (prop.getNameString().equals(name)) {
         return true;
       }
     }
