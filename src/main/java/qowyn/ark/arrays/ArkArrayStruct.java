@@ -8,9 +8,10 @@ import javax.json.JsonArray;
 import javax.json.JsonArrayBuilder;
 
 import qowyn.ark.ArkArchive;
+import qowyn.ark.structs.Struct;
 import qowyn.ark.structs.StructPropertyList;
 
-public class ArkArrayStruct extends ArrayList<StructPropertyList> implements ArkArray<StructPropertyList> {
+public class ArkArrayStruct extends ArrayList<Struct> implements ArkArray<Struct> {
 
   /**
    * 
@@ -32,8 +33,8 @@ public class ArkArrayStruct extends ArrayList<StructPropertyList> implements Ark
   }
 
   @Override
-  public Class<StructPropertyList> getValueClass() {
-    return StructPropertyList.class;
+  public Class<Struct> getValueClass() {
+    return Struct.class;
   }
 
   @Override

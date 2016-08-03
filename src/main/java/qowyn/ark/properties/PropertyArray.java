@@ -30,6 +30,7 @@ public class PropertyArray extends PropertyBase<ArkArray<?>> {
       }
     } catch (UnreadablePropertyException upe) {
       archive.position(position + dataSize);
+      System.err.println("Warning: Unreadable ArrayProperty with name " + name + ", skipping.");
     }
   }
 
