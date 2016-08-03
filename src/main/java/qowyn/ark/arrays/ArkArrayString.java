@@ -9,6 +9,7 @@ import javax.json.JsonArrayBuilder;
 import javax.json.JsonString;
 
 import qowyn.ark.ArkArchive;
+import qowyn.ark.types.ArkName;
 
 public class ArkArrayString extends ArrayList<String> implements ArkArray<String> {
 
@@ -19,7 +20,7 @@ public class ArkArrayString extends ArrayList<String> implements ArkArray<String
 
   public ArkArrayString() {}
 
-  public ArkArrayString(ArkArchive archive) {
+  public ArkArrayString(ArkArchive archive, ArkName propertyName) {
     int size = archive.getInt();
 
     for (int n = 0; n < size; n++) {
@@ -27,7 +28,7 @@ public class ArkArrayString extends ArrayList<String> implements ArkArray<String
     }
   }
 
-  public ArkArrayString(JsonArray a) {
+  public ArkArrayString(JsonArray a, ArkName propertyName) {
     a.getValuesAs(JsonString.class).forEach(s -> this.add(s.getString()));
   }
 

@@ -7,7 +7,7 @@ import javax.json.JsonObjectBuilder;
 
 import qowyn.ark.ArkArchive;
 import qowyn.ark.arrays.ArkArray;
-import qowyn.ark.arrays.ArkArrayReader;
+import qowyn.ark.arrays.ArkArrayRegistry;
 import qowyn.ark.types.ArkName;
 
 public class PropertyArray extends PropertyBase<ArkArray<?>> {
@@ -23,7 +23,7 @@ public class PropertyArray extends PropertyBase<ArkArray<?>> {
     int position = archive.position();
 
     try {
-      value = ArkArrayReader.read(archive, arrayType.toString());
+      value = ArkArrayRegistry.read(archive, arrayType, name);
 
       if (value == null) {
         archive.position(position + dataSize);
@@ -38,7 +38,7 @@ public class PropertyArray extends PropertyBase<ArkArray<?>> {
     super(o);
     arrayType = new ArkName(o.getString("arrayType"));
 
-    value = ArkArrayReader.read(o.getJsonArray("value"), arrayType.toString());
+    value = ArkArrayRegistry.read(o.getJsonArray("value"), arrayType, name);
   }
 
   @SuppressWarnings("unchecked")

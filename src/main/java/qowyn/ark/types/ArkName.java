@@ -10,7 +10,7 @@ public final class ArkName {
   private final String nameString;
 
   private final int nameIndex;
-  
+
   private final String string;
 
   public ArkName(String name) {
@@ -59,7 +59,7 @@ public final class ArkName {
       return true;
     if (!(obj instanceof ArkName))
       return false;
-    return string.equals(((ArkName)obj).string);
+    return string.equals(((ArkName) obj).string);
   }
 
 }

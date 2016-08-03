@@ -225,7 +225,7 @@ public class ArkSavegame {
       }
     }
   }
-  
+
   public void writeBinary(String fileName) throws FileNotFoundException, IOException {
     writeBinary(fileName, new WritingOptions());
   }
@@ -255,11 +255,11 @@ public class ArkSavegame {
     propertiesBlockOffset = size;
 
     size += calculateObjectPropertiesSize(saveVersion == 6);
-    
+
     try (RandomAccessFile raf = new RandomAccessFile(fileName, "rw")) {
       raf.setLength(size);
       ByteBuffer buffer;
-      
+
       if (options.getMemoryMapping()) {
         FileChannel fc = raf.getChannel();
         buffer = fc.map(FileChannel.MapMode.READ_WRITE, 0, size);
@@ -284,7 +284,7 @@ public class ArkSavegame {
       }
 
       writeBinaryProperties(archive, options);
-      
+
       if (!options.getMemoryMapping()) {
         raf.write(buffer.array());
       }

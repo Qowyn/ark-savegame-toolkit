@@ -11,9 +11,9 @@ public class ReadingOptions {
   private boolean gameObjects = true;
 
   private boolean gameObjectProperties = true;
-  
+
   private boolean parallelReading = false;
-  
+
   private boolean memoryMapping = true;
 
   private Predicate<GameObject> objectFilter = null;
@@ -66,20 +66,20 @@ public class ReadingOptions {
     this.gameObjectProperties = gameObjectProperties;
     return this;
   }
-  
+
   public boolean getParallelReading() {
     return parallelReading;
   }
-  
+
   public ReadingOptions withParallelReading(boolean parallelReading) {
     this.parallelReading = parallelReading;
     return this;
   }
-  
+
   public boolean getMemoryMapping() {
     return memoryMapping;
   }
-  
+
   public ReadingOptions withMemoryMapping(boolean memoryMapping) {
     this.memoryMapping = memoryMapping;
     return this;

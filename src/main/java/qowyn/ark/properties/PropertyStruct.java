@@ -7,7 +7,7 @@ import javax.json.JsonObjectBuilder;
 
 import qowyn.ark.ArkArchive;
 import qowyn.ark.structs.Struct;
-import qowyn.ark.structs.StructReader;
+import qowyn.ark.structs.StructRegistry;
 import qowyn.ark.types.ArkName;
 
 public class PropertyStruct extends PropertyBase<Struct> {
@@ -20,7 +20,7 @@ public class PropertyStruct extends PropertyBase<Struct> {
 
     int position = archive.position();
     try {
-      value = StructReader.read(archive, structType, dataSize);
+      value = StructRegistry.read(archive, structType);
     } catch (UnreadablePropertyException upe) {
       // skip struct
       archive.position(position + dataSize);
@@ -30,7 +30,7 @@ public class PropertyStruct extends PropertyBase<Struct> {
   public PropertyStruct(JsonObject o) {
     super(o);
     ArkName structType = new ArkName(o.getString("structType"));
-    value = StructReader.read(o.get("value"), structType);
+    value = StructRegistry.read(o.get("value"), structType);
   }
 
   @Override

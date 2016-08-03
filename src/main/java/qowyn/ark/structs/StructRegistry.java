@@ -9,15 +9,17 @@ import javax.json.JsonValue;
 import qowyn.ark.ArkArchive;
 import qowyn.ark.types.ArkName;
 
-public class StructReader {
+public class StructRegistry {
 
-  public static final Map<String, BiFunction<ArkArchive, ArkName, Struct>> TYPE_MAP = new HashMap<>();
+  public static final Map<ArkName, BiFunction<ArkArchive, ArkName, Struct>> TYPE_MAP = new HashMap<>();
 
-  public static final Map<String, BiFunction<JsonValue, ArkName, Struct>> TYPE_JSON_MAP = new HashMap<>();
+  public static final Map<ArkName, BiFunction<JsonValue, ArkName, Struct>> TYPE_JSON_MAP = new HashMap<>();
+
+  public static final Map<ArkName, ArkName> NAME_TYPE_MAP = new HashMap<>();
 
   public static void addStruct(String name, BiFunction<ArkArchive, ArkName, Struct> binary, BiFunction<JsonValue, ArkName, Struct> json) {
-    TYPE_MAP.put(name, binary);
-    TYPE_JSON_MAP.put(name, json);
+    TYPE_MAP.put(new ArkName(name), binary);
+    TYPE_JSON_MAP.put(new ArkName(name), json);
   }
 
   static {
@@ -29,16 +31,26 @@ public class StructReader {
     addStruct("TribeData", StructPropertyList::new, StructPropertyList::new);
     addStruct("Vector", StructVector::new, StructVector::new);
     addStruct("Quat", StructQuat::new, StructQuat::new);
+    addStruct("Color", StructColor::new, StructColor::new);
     addStruct("LinearColor", StructLinearColor::new, StructLinearColor::new);
     addStruct("Rotator", StructVector::new, StructVector::new);
     addStruct("UniqueNetIdRepl", StructUniqueNetIdRepl::new, StructUniqueNetIdRepl::new);
+
+    NAME_TYPE_MAP.put(new ArkName("CustomColors"), new ArkName("Color"));
   }
 
-  public static Struct read(ArkArchive archive, ArkName structType, int size) {
-    String structTypeString = structType.toString();
+  public static ArkName mapArrayNameToTypeName(ArkName arrayName) {
+    ArkName typeName = NAME_TYPE_MAP.getOrDefault(arrayName, null);
+    if (typeName == null) {
+      return null;
+    } else {
+      return typeName;
+    }
+  }
 
-    if (TYPE_MAP.containsKey(structTypeString)) {
-      return TYPE_MAP.get(structTypeString).apply(archive, structType);
+  public static Struct read(ArkArchive archive, ArkName structType) {
+    if (TYPE_MAP.containsKey(structType)) {
+      return TYPE_MAP.get(structType).apply(archive, structType);
     } else {
       System.err.println("Warning: Unknown Struct Type " + structType + " at " + Integer.toHexString(archive.position()) + " trying to read as StructPropertyList");
       return new StructPropertyList(archive, structType);

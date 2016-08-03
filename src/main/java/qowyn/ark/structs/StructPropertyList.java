@@ -14,7 +14,7 @@ import javax.json.JsonValue;
 import qowyn.ark.ArkArchive;
 import qowyn.ark.PropertyContainer;
 import qowyn.ark.properties.Property;
-import qowyn.ark.properties.PropertyReader;
+import qowyn.ark.properties.PropertyRegistry;
 import qowyn.ark.types.ArkName;
 
 public class StructPropertyList extends StructBase implements PropertyContainer {
@@ -24,11 +24,11 @@ public class StructPropertyList extends StructBase implements PropertyContainer 
   public StructPropertyList(ArkArchive archive, ArkName structType) {
     super(structType);
     properties = new ArrayList<>();
-    Property<?> property = PropertyReader.readProperty(archive);
+    Property<?> property = PropertyRegistry.readProperty(archive);
 
     while (property != null) {
       properties.add(property);
-      property = PropertyReader.readProperty(archive);
+      property = PropertyRegistry.readProperty(archive);
     }
   }
 
@@ -38,7 +38,7 @@ public class StructPropertyList extends StructBase implements PropertyContainer 
     JsonArray a = (JsonArray) v;
 
     List<JsonObject> props = a.getValuesAs(JsonObject.class);
-    properties = props.stream().map(PropertyReader::fromJSON).collect(Collectors.toList());
+    properties = props.stream().map(PropertyRegistry::fromJSON).collect(Collectors.toList());
   }
 
   @Override
