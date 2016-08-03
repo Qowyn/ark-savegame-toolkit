@@ -12,6 +12,7 @@ import javax.json.JsonValue.ValueType;
 
 import qowyn.ark.ArkArchive;
 import qowyn.ark.GameObject;
+import qowyn.ark.properties.UnreadablePropertyException;
 import qowyn.ark.structs.StructPropertyList;
 
 public class ExtraDataFoliageHandler implements ExtraDataHandler {
@@ -37,23 +38,27 @@ public class ExtraDataFoliageHandler implements ExtraDataHandler {
 
     List<Map<String, StructPropertyList>> structMapList = new ArrayList<>(structMapCount);
 
-    for (int structMapIndex = 0; structMapIndex < structMapCount; structMapIndex++) {
-      int structCount = archive.getInt();
-      Map<String, StructPropertyList> structMap = new HashMap<>();
+    try {
+      for (int structMapIndex = 0; structMapIndex < structMapCount; structMapIndex++) {
+        int structCount = archive.getInt();
+        Map<String, StructPropertyList> structMap = new HashMap<>();
 
-      for (int structIndex = 0; structIndex < structCount; structIndex++) {
-        String structName = archive.getString();
-        StructPropertyList properties = new StructPropertyList(archive, null);
+        for (int structIndex = 0; structIndex < structCount; structIndex++) {
+          String structName = archive.getString();
+          StructPropertyList properties = new StructPropertyList(archive, null);
 
-        int shouldBeZero2 = archive.getInt();
-        if (shouldBeZero2 != 0) {
-          System.err.println("Expected int after properties to be 0 but found " + shouldBeZero2 + " at " + Integer.toHexString(archive.position() - 4));
+          int shouldBeZero2 = archive.getInt();
+          if (shouldBeZero2 != 0) {
+            System.err.println("Expected int after properties to be 0 but found " + shouldBeZero2 + " at " + Integer.toHexString(archive.position() - 4));
+          }
+
+          structMap.put(structName, properties);
         }
 
-        structMap.put(structName, properties);
+        structMapList.add(structMap);
       }
-
-      structMapList.add(structMap);
+    } catch (UnreadablePropertyException upe) {
+      // Just stop reading and attach collected structs
     }
 
     ExtraDataFoliage extraDataFoliage = new ExtraDataFoliage();

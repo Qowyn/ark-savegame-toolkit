@@ -36,7 +36,7 @@ public class ArkArchive {
     this.mbb = mbb;
     mbb.order(ByteOrder.LITTLE_ENDIAN);
   }
-  
+
   public ArkArchive(ArkArchive toClone) {
     this.mbb = toClone.mbb.duplicate().order(ByteOrder.LITTLE_ENDIAN);
     this.nameTable = toClone.nameTable;
@@ -57,7 +57,7 @@ public class ArkArchive {
         nameMapBuilder.put(name, index);
         index += 1;
       }
-      
+
       this.nameMap = Collections.unmodifiableMap(nameMapBuilder);
     } else {
       this.nameTable = null;
@@ -72,7 +72,8 @@ public class ArkArchive {
   protected ArkName getNameFromTable() {
     int id = mbb.getInt();
 
-    if (!hasNameTable() || id < 1 || id > nameTable.size()) {
+    if (id < 1 || id > nameTable.size()) {
+      System.err.println("Found invalid nametable index " + id + " at " + Integer.toHexString(mbb.position() - 4));
       return null;
     }
 

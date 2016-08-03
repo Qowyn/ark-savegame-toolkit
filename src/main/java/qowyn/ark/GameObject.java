@@ -20,6 +20,7 @@ import qowyn.ark.data.ExtraData;
 import qowyn.ark.data.ExtraDataRegistry;
 import qowyn.ark.properties.Property;
 import qowyn.ark.properties.PropertyReader;
+import qowyn.ark.properties.UnreadablePropertyException;
 import qowyn.ark.types.ArkName;
 import qowyn.ark.types.LocationData;
 
@@ -328,11 +329,16 @@ public class GameObject implements PropertyContainer, NameContainer {
     archive.position(offset);
 
     properties.clear();
-    Property<?> property = PropertyReader.readProperty(archive);
+    try {
+      Property<?> property = PropertyReader.readProperty(archive);
 
-    while (property != null) {
-      properties.add(property);
-      property = PropertyReader.readProperty(archive);
+      while (property != null) {
+        properties.add(property);
+        property = PropertyReader.readProperty(archive);
+      }
+    } catch (UnreadablePropertyException upe) {
+      // Stop reading and ignore possible extra data for now, needs a new field in ExtraDataHandler
+      return;
     }
 
     int distance = nextOffset - archive.position();

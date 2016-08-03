@@ -20,10 +20,16 @@ public class PropertyArray extends PropertyBase<ArkArray<?>> {
     super(archive, args);
     arrayType = archive.getName();
 
-    value = ArkArrayReader.read(archive, arrayType.toString());
+    int position = archive.position();
 
-    if (value == null) {
-      archive.position(archive.position() + dataSize);
+    try {
+      value = ArkArrayReader.read(archive, arrayType.toString());
+
+      if (value == null) {
+        archive.position(position + dataSize);
+      }
+    } catch (UnreadablePropertyException upe) {
+      archive.position(position + dataSize);
     }
   }
 

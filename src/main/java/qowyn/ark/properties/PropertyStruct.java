@@ -17,7 +17,14 @@ public class PropertyStruct extends PropertyBase<Struct> {
   public PropertyStruct(ArkArchive archive, PropertyArgs args) {
     super(archive, args);
     ArkName structType = archive.getName();
-    value = StructReader.read(archive, structType, dataSize);
+
+    int position = archive.position();
+    try {
+      value = StructReader.read(archive, structType, dataSize);
+    } catch (UnreadablePropertyException upe) {
+      // skip struct
+      archive.position(position + dataSize);
+    }
   }
 
   public PropertyStruct(JsonObject o) {

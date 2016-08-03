@@ -10,6 +10,8 @@ public interface Property<T> extends NameContainer {
 
   public static final ArkName NONE_NAME = new ArkName("None");
 
+  public static final ArkName EMPTY_NAME = new ArkName("");
+
   public Class<T> getValueClass();
 
   public ArkName getName();

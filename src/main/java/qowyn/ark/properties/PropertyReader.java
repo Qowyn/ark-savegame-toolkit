@@ -42,6 +42,11 @@ public class PropertyReader {
   public static Property<?> readProperty(ArkArchive archive) {
     ArkName name = archive.getName();
 
+    if (name == null || name.equals(Property.EMPTY_NAME)) {
+      System.err.println("Warning: Property name is " + (name == null ? "null" : "empty") + ". Ignoring remaining properties.");
+      throw new UnreadablePropertyException();
+    }
+
     if (name.equals(Property.NONE_NAME)) {
       return null;
     }
@@ -51,7 +56,7 @@ public class PropertyReader {
 
     if (!TYPE_MAP.containsKey(typeString)) {
       System.err.println("Warning: Unknown property type " + typeString + ". Ignoring remaining properties.");
-      return null;
+      throw new UnreadablePropertyException();
     }
 
     PropertyArgs args = new PropertyArgs(name, type);
