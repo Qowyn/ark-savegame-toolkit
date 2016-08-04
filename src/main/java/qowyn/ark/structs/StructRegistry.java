@@ -58,10 +58,8 @@ public class StructRegistry {
   }
 
   public static Struct read(JsonValue o, ArkName structType) {
-    String structTypeString = structType.toString();
-
-    if (TYPE_JSON_MAP.containsKey(structTypeString)) {
-      return TYPE_JSON_MAP.get(structTypeString).apply(o, structType);
+    if (TYPE_JSON_MAP.containsKey(structType)) {
+      return TYPE_JSON_MAP.get(structType).apply(o, structType);
     } else {
       return new StructPropertyList(o, structType);
     }
