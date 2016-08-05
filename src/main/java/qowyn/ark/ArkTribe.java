@@ -3,7 +3,12 @@ package qowyn.ark;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.RandomAccessFile;
+import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
+
+import javax.json.Json;
+import javax.json.JsonObject;
+import javax.json.JsonObjectBuilder;
 
 public class ArkTribe {
 
@@ -22,6 +27,10 @@ public class ArkTribe {
     }
   }
 
+  public ArkTribe(JsonObject object) {
+    readJson(object);
+  }
+
   public void readBinary(ArkArchive archive) {
     tribeVersion = archive.getInt();
 
@@ -37,6 +46,57 @@ public class ArkTribe {
 
     tribe = new GameObject(archive);
     tribe.loadProperties(archive, null, 0);
+  }
+
+  public void writeBinary(String fileName) throws FileNotFoundException, IOException {
+    writeBinary(fileName, WritingOptions.create());
+  }
+
+  public void writeBinary(String fileName, WritingOptions options) throws FileNotFoundException, IOException {
+    int size = Integer.BYTES * 2;
+
+    size += tribe.getSize(false);
+
+    int propertiesBlockOffset = size;
+
+    size += tribe.getPropertiesSize(false);
+
+    try (RandomAccessFile raf = new RandomAccessFile(fileName, "rw")) {
+      raf.setLength(size);
+      ByteBuffer buffer;
+
+      if (options.getMemoryMapping()) {
+        FileChannel fc = raf.getChannel();
+        buffer = fc.map(FileChannel.MapMode.READ_WRITE, 0, size);
+      } else {
+        buffer = ByteBuffer.allocate(size);
+      }
+
+      ArkArchive archive = new ArkArchive(buffer);
+
+      archive.putInt(tribeVersion);
+      archive.putInt(1);
+      tribe.write(archive, propertiesBlockOffset);
+      tribe.writeProperties(archive, 0);
+
+      if (!options.getMemoryMapping()) {
+        raf.write(buffer.array());
+      }
+    }
+  }
+
+  public void readJson(JsonObject object) {
+    tribeVersion = object.getInt("tribeVersion");
+    tribe = new GameObject(object.getJsonObject("tribe"));
+  }
+
+  public JsonObject toJson() {
+    JsonObjectBuilder job = Json.createObjectBuilder();
+
+    job.add("tribeVersion", tribeVersion);
+    job.add("tribe", tribe.toJson());
+
+    return job.build();
   }
 
   public int getTribeVersion() {
