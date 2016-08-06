@@ -13,8 +13,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import javax.json.Json;
 import javax.json.JsonArray;
@@ -24,15 +24,21 @@ import javax.json.JsonObjectBuilder;
 import javax.json.JsonString;
 import javax.json.stream.JsonGenerator;
 
+import com.lmax.disruptor.RingBuffer;
+import com.lmax.disruptor.YieldingWaitStrategy;
+import com.lmax.disruptor.dsl.Disruptor;
+import com.lmax.disruptor.dsl.ProducerType;
+
+import qowyn.ark.disruptor.JsonObjectEvent;
 import qowyn.ark.types.EmbeddedData;
 import qowyn.ark.types.ObjectReference;
 
 public class ArkSavegame {
 
   /**
-   * Size of chunks for converting GameObjects to JsonObjects in parallel
+   * Size of LMAX Disruptor RingBuffer, higher values yield larger buffer for slow I/O
    */
-  public static int objectChunkSize = Math.max(getChunkThreshold(), 1 << 12);
+  public static int ringBufferSize = 1 << 12;
 
   protected short saveVersion;
 
@@ -445,6 +451,7 @@ public class ArkSavegame {
    * 
    * @param generator {@link JsonGenerator} to write with
    */
+  @SuppressWarnings("unchecked")
   public void writeJson(JsonGenerator generator) {
     generator.writeStartObject();
 
@@ -470,20 +477,17 @@ public class ArkSavegame {
     if (!objects.isEmpty()) {
       generator.writeStartArray("objects");
 
-      if (objectChunkSize >= getChunkThreshold()) {
-        Stream<List<GameObject>> chunks = ConcurrencyUtil.splitToChunks(objects, objectChunkSize);
+      Disruptor<JsonObjectEvent> disruptor = new Disruptor<>(JsonObjectEvent::new, ringBufferSize, Executors.defaultThreadFactory(), ProducerType.SINGLE, new YieldingWaitStrategy());
 
-        chunks.forEach(subList -> {
-          List<JsonObject> objectsList = subList.parallelStream()
-              .sorted(Comparator.comparing(GameObject::getId))
-              .map(GameObject::toJson)
-              .collect(Collectors.toList());
+      disruptor.handleEventsWith((event, sequence, endOfBatch) -> generator.write(event.get()));
 
-          objectsList.forEach(o -> generator.write(o));
-        });
-      } else {
-        objects.forEach(o -> generator.write(o.toJson()));
-      }
+      disruptor.start();
+
+      RingBuffer<JsonObjectEvent> ringBuffer = disruptor.getRingBuffer();
+
+      objects.forEach(o -> ringBuffer.publishEvent((event, sequence) -> event.set(o.toJson())));
+
+      disruptor.shutdown();
 
       generator.writeEnd();
     }
@@ -527,14 +531,6 @@ public class ArkSavegame {
     }
 
     return builder.build();
-  }
-
-  /**
-   * If objectChunkSize is lower than this parallel conversion will be deactivated
-   * @return minimum value of objectChunkSize
-   */
-  public static int getChunkThreshold() {
-    return Runtime.getRuntime().availableProcessors() * 8;
   }
 
 }

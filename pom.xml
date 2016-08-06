@@ -23,6 +23,11 @@
 			<artifactId>javax.json</artifactId>
 			<version>1.0.4</version>
 		</dependency>
+		<dependency>
+			<groupId>com.lmax</groupId>
+			<artifactId>disruptor</artifactId>
+			<version>3.3.5</version>
+		</dependency>
 	</dependencies>
 
 	<build>
