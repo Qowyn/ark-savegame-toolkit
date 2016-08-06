@@ -29,7 +29,10 @@ import qowyn.ark.types.ObjectReference;
 
 public class ArkSavegame {
 
-  public static int objectChunkSize = 1 << 12;
+  /**
+   * Size of chunks for converting GameObjects to JsonObjects in parallel
+   */
+  public static int objectChunkSize = Math.max(getChunkThreshold(), 1 << 12);
 
   protected short saveVersion;
 
@@ -467,16 +470,20 @@ public class ArkSavegame {
     if (!objects.isEmpty()) {
       generator.writeStartArray("objects");
 
-      Stream<List<GameObject>> chunks = ConcurrencyUtil.splitToChunks(objects, objectChunkSize);
+      if (objectChunkSize >= getChunkThreshold()) {
+        Stream<List<GameObject>> chunks = ConcurrencyUtil.splitToChunks(objects, objectChunkSize);
 
-      chunks.forEach(subList -> {
-        List<JsonObject> objectsList = subList.parallelStream()
-            .sorted(Comparator.comparing(GameObject::getId))
-            .map(GameObject::toJson)
-            .collect(Collectors.toList());
+        chunks.forEach(subList -> {
+          List<JsonObject> objectsList = subList.parallelStream()
+              .sorted(Comparator.comparing(GameObject::getId))
+              .map(GameObject::toJson)
+              .collect(Collectors.toList());
 
-        objectsList.forEach(o -> generator.write(o));
-      });
+          objectsList.forEach(o -> generator.write(o));
+        });
+      } else {
+        objects.forEach(o -> generator.write(o.toJson()));
+      }
 
       generator.writeEnd();
     }
@@ -520,6 +527,14 @@ public class ArkSavegame {
     }
 
     return builder.build();
+  }
+
+  /**
+   * If objectChunkSize is lower than this parallel conversion will be deactivated
+   * @return minimum value of objectChunkSize
+   */
+  public static int getChunkThreshold() {
+    return Runtime.getRuntime().availableProcessors() * 8;
   }
 
 }
