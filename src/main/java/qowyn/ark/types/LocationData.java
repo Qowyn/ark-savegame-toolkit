@@ -79,22 +79,6 @@ public class LocationData {
     this.roll = roll;
   }
 
-  public float getLat() {
-    return getLat(8000);
-  }
-
-  public float getLat(int height) {
-    return 50 + y / height;
-  }
-
-  public float getLon() {
-    return getLon(8000);
-  }
-
-  public float getLon(int width) {
-    return 50 + x / width;
-  }
-
   @Override
   public String toString() {
     return "LocationData [x=" + x + ", y=" + y + ", z=" + z + ", pitch=" + pitch + ", yaw=" + yaw + ", roll=" + roll + "]";
