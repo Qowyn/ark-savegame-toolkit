@@ -14,6 +14,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import javax.json.Json;
 import javax.json.JsonArray;
@@ -21,10 +22,14 @@ import javax.json.JsonArrayBuilder;
 import javax.json.JsonObject;
 import javax.json.JsonObjectBuilder;
 import javax.json.JsonString;
+import javax.json.stream.JsonGenerator;
 
 import qowyn.ark.types.EmbeddedData;
+import qowyn.ark.types.ObjectReference;
 
 public class ArkSavegame {
+
+  public static int objectChunkSize = 1 << 12;
 
   protected short saveVersion;
 
@@ -427,6 +432,56 @@ public class ArkSavegame {
         }
       }
     }
+  }
+
+  /**
+   * Writes this class as json using {@code generator}. This method is valid only in an array
+   * context or in no context (see {@link JsonGenerator#writeStartObject()}. Requires the current
+   * objects list to be correctly sorted, otherwise the written {@link ObjectReference
+   * ObjectReferences} might be broken.
+   * 
+   * @param generator {@link JsonGenerator} to write with
+   */
+  public void writeJson(JsonGenerator generator) {
+    generator.writeStartObject();
+
+    generator.write("saveVersion", saveVersion);
+    generator.write("gameTime", gameTime);
+
+    if (!dataFiles.isEmpty()) {
+      generator.writeStartArray("dataFiles");
+
+      dataFiles.forEach(generator::write);
+
+      generator.writeEnd();
+    }
+
+    if (!embeddedData.isEmpty()) {
+      generator.writeStartArray("embeddedData");
+
+      embeddedData.forEach(ed -> generator.write(ed.toJson()));
+
+      generator.writeEnd();
+    }
+
+    if (!objects.isEmpty()) {
+      generator.writeStartArray("objects");
+
+      Stream<List<GameObject>> chunks = ConcurrencyUtil.splitToChunks(objects, objectChunkSize);
+
+      chunks.forEach(subList -> {
+        List<JsonObject> objectsList = subList.parallelStream()
+            .sorted(Comparator.comparing(GameObject::getId))
+            .map(GameObject::toJson)
+            .collect(Collectors.toList());
+
+        objectsList.forEach(o -> generator.write(o));
+      });
+
+      generator.writeEnd();
+    }
+
+    generator.writeEnd();
   }
 
   public JsonObject toJson() {
