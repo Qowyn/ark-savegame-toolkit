@@ -37,6 +37,7 @@ public class StructRegistry {
     addStruct("UniqueNetIdRepl", StructUniqueNetIdRepl::new, StructUniqueNetIdRepl::new);
 
     NAME_TYPE_MAP.put(new ArkName("CustomColors"), new ArkName("Color"));
+    NAME_TYPE_MAP.put(new ArkName("CustomColours_60_7D3267C846B277953C0C41AEBD54FBCB"), new ArkName("LinearColor"));
   }
 
   public static ArkName mapArrayNameToTypeName(ArkName arrayName) {
