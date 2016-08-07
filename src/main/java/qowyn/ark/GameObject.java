@@ -14,7 +14,6 @@ import javax.json.JsonObject;
 import javax.json.JsonObjectBuilder;
 import javax.json.JsonString;
 import javax.json.JsonValue;
-import javax.json.JsonValue.ValueType;
 
 import qowyn.ark.data.ExtraData;
 import qowyn.ark.data.ExtraDataRegistry;
@@ -193,7 +192,7 @@ public class GameObject implements PropertyContainer, NameContainer {
       }
 
       JsonValue extra = o.get("extra");
-      if (extra != null && extra.getValueType() != ValueType.NULL) {
+      if (extra != null) {
         extraData = ExtraDataRegistry.getExtraData(this, extra);
       }
     }

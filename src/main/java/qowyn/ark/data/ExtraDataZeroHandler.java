@@ -30,8 +30,7 @@ public class ExtraDataZeroHandler implements ExtraDataHandler {
 
   @Override
   public ExtraData read(GameObject object, JsonValue value) {
-    // TODO Auto-generated method stub
-    return null;
+    return new ExtraDataZero();
   }
 
 }
