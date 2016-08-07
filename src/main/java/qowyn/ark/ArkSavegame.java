@@ -233,6 +233,8 @@ public class ArkSavegame {
 
           stream.forEach(n -> readBinaryObjectPropertiesImpl(n, new ArkArchive(archive)));
         }).join();
+
+        pool.shutdown();
       } else {
         IntStream stream = IntStream.range(0, objects.size());
 
@@ -372,7 +374,13 @@ public class ArkSavegame {
     }
 
     if (options.getParallelWriting()) {
-      objects.parallelStream().forEach(o -> o.writeProperties(new ArkArchive(archive), offset));
+      ForkJoinPool pool = new ForkJoinPool(Runtime.getRuntime().availableProcessors(), ForkJoinPool.defaultForkJoinWorkerThreadFactory, null, true);
+
+      final ThreadLocal<ArkArchive> sharedArchive = ThreadLocal.withInitial(() -> new ArkArchive(archive));
+
+      pool.submit(() -> objects.parallelStream().forEach(o -> o.writeProperties(sharedArchive.get(), offset))).join();
+
+      pool.shutdown();
     } else {
       objects.stream().forEach(o -> o.writeProperties(archive, offset));
     }
