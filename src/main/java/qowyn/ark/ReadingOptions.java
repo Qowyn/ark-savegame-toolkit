@@ -141,4 +141,10 @@ public class ReadingOptions extends BaseOptions {
     return this;
   }
 
+  @Override
+  public ReadingOptions asynchronous(boolean asynchronous) {
+    super.asynchronous(asynchronous);
+    return this;
+  }
+
 }

@@ -47,4 +47,10 @@ public class WritingOptions extends BaseOptions {
     return this;
   }
 
+  @Override
+  public WritingOptions asynchronous(boolean asynchronous) {
+    super.asynchronous(asynchronous);
+    return this;
+  }
+
 }
