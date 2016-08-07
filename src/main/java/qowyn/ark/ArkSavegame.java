@@ -7,14 +7,14 @@ import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ForkJoinPool;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import javax.json.Json;
 import javax.json.JsonArray;
@@ -222,22 +222,31 @@ public class ArkSavegame {
   protected void readBinaryObjectProperties(ArkArchive archive, ReadingOptions options) {
     if (options.getGameObjects() && options.getGameObjectProperties()) {
       if (options.getParallelReading()) {
-        Map<GameObject, GameObject> objectsToProcess = new HashMap<>();
-        for (int n = 0; n < objects.size(); n++) {
-          if (options.getObjectFilter() == null || options.getObjectFilter().test(objects.get(n))) {
-            objectsToProcess.put(objects.get(n), (n < objects.size() - 1) ? objects.get(n + 1) : null);
+        ForkJoinPool pool = new ForkJoinPool(Runtime.getRuntime().availableProcessors(), ForkJoinPool.defaultForkJoinWorkerThreadFactory, null, true);
+
+        pool.submit(() -> {
+          IntStream stream = IntStream.range(0, objects.size()).parallel();
+
+          if (options.getObjectFilter() != null) {
+            stream = stream.filter(n -> options.getObjectFilter().test(objects.get(n)));
           }
+
+          stream.forEach(n -> readBinaryObjectPropertiesImpl(n, new ArkArchive(archive)));
+        }).join();
+      } else {
+        IntStream stream = IntStream.range(0, objects.size());
+
+        if (options.getObjectFilter() != null) {
+          stream = stream.filter(n -> options.getObjectFilter().test(objects.get(n)));
         }
 
-        objectsToProcess.entrySet().parallelStream().forEach(e -> e.getKey().loadProperties(new ArkArchive(archive), e.getValue(), propertiesBlockOffset));
-      } else {
-        for (int n = 0; n < objects.size(); n++) {
-          if (options.getObjectFilter() == null || options.getObjectFilter().test(objects.get(n))) {
-            objects.get(n).loadProperties(archive, (n < objects.size() - 1) ? objects.get(n + 1) : null, propertiesBlockOffset);
-          }
-        }
+        stream.forEach(n -> readBinaryObjectPropertiesImpl(n, archive));
       }
     }
+  }
+
+  protected void readBinaryObjectPropertiesImpl(int n, ArkArchive archive) {
+    objects.get(n).loadProperties(archive, (n < objects.size() - 1) ? objects.get(n + 1) : null, propertiesBlockOffset);
   }
 
   public void writeBinary(String fileName) throws FileNotFoundException, IOException {
