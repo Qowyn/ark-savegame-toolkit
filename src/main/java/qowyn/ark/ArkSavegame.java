@@ -490,7 +490,7 @@ public class ArkSavegame {
       generator.writeStartArray("objects");
 
       if (options.isAsynchronous()) {
-        int bufferSize = Math.min(options.getAsyncBufferSize(), objects.size());
+        int bufferSize = options.getAsyncBufferSize();
 
         Disruptor<JsonObjectEvent> disruptor = new Disruptor<>(JsonObjectEvent::new, bufferSize, Executors.defaultThreadFactory(), ProducerType.SINGLE, new YieldingWaitStrategy());
 
