@@ -65,7 +65,7 @@ public class ArkTribe {
       raf.setLength(size);
       ByteBuffer buffer;
 
-      if (options.getMemoryMapping()) {
+      if (options.usesMemoryMapping()) {
         FileChannel fc = raf.getChannel();
         buffer = fc.map(FileChannel.MapMode.READ_WRITE, 0, size);
       } else {
@@ -79,7 +79,7 @@ public class ArkTribe {
       tribe.write(archive, propertiesBlockOffset);
       tribe.writeProperties(archive, 0);
 
-      if (!options.getMemoryMapping()) {
+      if (!options.usesMemoryMapping()) {
         raf.write(buffer.array());
       }
     }

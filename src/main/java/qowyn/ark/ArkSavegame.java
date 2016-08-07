@@ -35,11 +35,6 @@ import qowyn.ark.types.ObjectReference;
 
 public class ArkSavegame {
 
-  /**
-   * Size of LMAX Disruptor RingBuffer, higher values yield larger buffer for slow I/O
-   */
-  public static int ringBufferSize = 1 << 12;
-
   protected short saveVersion;
 
   protected int nameTableOffset;
@@ -63,7 +58,7 @@ public class ArkSavegame {
   public ArkSavegame(String fileName, ReadingOptions options) throws IOException {
     try (RandomAccessFile raf = new RandomAccessFile(fileName, "r")) {
       ByteBuffer buffer;
-      if (options.getMemoryMapping()) {
+      if (options.usesMemoryMapping()) {
         FileChannel fc = raf.getChannel();
         buffer = fc.map(FileChannel.MapMode.READ_ONLY, 0, fc.size());
       } else {
@@ -221,7 +216,7 @@ public class ArkSavegame {
 
   protected void readBinaryObjectProperties(ArkArchive archive, ReadingOptions options) {
     if (options.getGameObjects() && options.getGameObjectProperties()) {
-      if (options.getParallelReading()) {
+      if (options.isParallel()) {
         ForkJoinPool pool = new ForkJoinPool(Runtime.getRuntime().availableProcessors(), ForkJoinPool.defaultForkJoinWorkerThreadFactory, null, true);
 
         pool.submit(() -> {
@@ -285,7 +280,7 @@ public class ArkSavegame {
       raf.setLength(size);
       ByteBuffer buffer;
 
-      if (options.getMemoryMapping()) {
+      if (options.usesMemoryMapping()) {
         FileChannel fc = raf.getChannel();
         buffer = fc.map(FileChannel.MapMode.READ_WRITE, 0, size);
       } else {
@@ -310,7 +305,7 @@ public class ArkSavegame {
 
       writeBinaryProperties(archive, options);
 
-      if (!options.getMemoryMapping()) {
+      if (!options.usesMemoryMapping()) {
         raf.write(buffer.array());
       }
     }
@@ -373,7 +368,7 @@ public class ArkSavegame {
       offset = propertiesBlockOffset;
     }
 
-    if (options.getParallelWriting()) {
+    if (options.isParallel()) {
       ForkJoinPool pool = new ForkJoinPool(Runtime.getRuntime().availableProcessors(), ForkJoinPool.defaultForkJoinWorkerThreadFactory, null, true);
 
       final ThreadLocal<ArkArchive> sharedArchive = ThreadLocal.withInitial(() -> new ArkArchive(archive));
@@ -469,7 +464,7 @@ public class ArkSavegame {
    * @param generator {@link JsonGenerator} to write with
    */
   @SuppressWarnings("unchecked")
-  public void writeJson(JsonGenerator generator) {
+  public void writeJson(JsonGenerator generator, WritingOptions options) {
     generator.writeStartObject();
 
     generator.write("saveVersion", saveVersion);
@@ -494,17 +489,23 @@ public class ArkSavegame {
     if (!objects.isEmpty()) {
       generator.writeStartArray("objects");
 
-      Disruptor<JsonObjectEvent> disruptor = new Disruptor<>(JsonObjectEvent::new, ringBufferSize, Executors.defaultThreadFactory(), ProducerType.SINGLE, new YieldingWaitStrategy());
+      if (options.isAsynchronous()) {
+        int bufferSize = Math.min(options.getAsyncBufferSize(), objects.size());
 
-      disruptor.handleEventsWith((event, sequence, endOfBatch) -> generator.write(event.get()));
+        Disruptor<JsonObjectEvent> disruptor = new Disruptor<>(JsonObjectEvent::new, bufferSize, Executors.defaultThreadFactory(), ProducerType.SINGLE, new YieldingWaitStrategy());
 
-      disruptor.start();
+        disruptor.handleEventsWith((event, sequence, endOfBatch) -> generator.write(event.get()));
 
-      RingBuffer<JsonObjectEvent> ringBuffer = disruptor.getRingBuffer();
+        disruptor.start();
 
-      objects.forEach(o -> ringBuffer.publishEvent((event, sequence) -> event.set(o.toJson())));
+        RingBuffer<JsonObjectEvent> ringBuffer = disruptor.getRingBuffer();
 
-      disruptor.shutdown();
+        objects.forEach(o -> ringBuffer.publishEvent((event, sequence) -> event.set(o.toJson())));
+
+        disruptor.shutdown();
+      } else {
+        objects.forEach(o -> generator.write(o.toJson()));
+      }
 
       generator.writeEnd();
     }
