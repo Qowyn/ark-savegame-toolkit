@@ -10,6 +10,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -32,15 +33,24 @@ public class ArkArchive {
 
   private final byte[] smallByteBuffer = new byte[4096];
 
+  // cache for ArkNames if using nameTable (.ark V6)
+  private final Map<String, Map<Integer, ArkName>> nameCache;
+
+  // cache for ArkNames if not using nameTable (.arkprofile, .arktribe, .ark V5)
+  private final Map<String, ArkName> nameCacheWithoutTable;
+
   public ArkArchive(ByteBuffer mbb) {
-    this.mbb = mbb;
-    mbb.order(ByteOrder.LITTLE_ENDIAN);
+    this.mbb = mbb.order(ByteOrder.LITTLE_ENDIAN);
+    this.nameCache = new ConcurrentHashMap<>();
+    this.nameCacheWithoutTable = new ConcurrentHashMap<>();
   }
 
   public ArkArchive(ArkArchive toClone) {
     this.mbb = toClone.mbb.duplicate().order(ByteOrder.LITTLE_ENDIAN);
     this.nameTable = toClone.nameTable;
     this.nameMap = toClone.nameMap;
+    this.nameCache = toClone.nameCache;
+    this.nameCacheWithoutTable = new ConcurrentHashMap<>();
   }
 
   public List<String> getNameTable() {
@@ -80,7 +90,11 @@ public class ArkArchive {
     String nameString = nameTable.get(id - 1);
     int nameIndex = mbb.getInt();
 
-    return new ArkName(nameString, nameIndex);
+    // Get or create map for index values
+    Map<Integer, ArkName> indexMap = nameCache.computeIfAbsent(nameString, s -> new HashMap<>());
+
+    // Get or create ArkName
+    return indexMap.computeIfAbsent(nameIndex, index -> new ArkName(nameString, index));
   }
 
   public String getString() {
@@ -123,7 +137,9 @@ public class ArkArchive {
 
   public ArkName getName() {
     if (!hasNameTable()) {
-      return new ArkName(getString());
+      String nameAsString = getString();
+      // get or create ArkName
+      return nameCacheWithoutTable.computeIfAbsent(nameAsString, ArkName::new);
     } else {
       return getNameFromTable();
     }

@@ -8,6 +8,8 @@ import qowyn.ark.GameObject;
 
 public class ExtraDataZeroHandler implements ExtraDataHandler {
 
+  private static final ExtraDataZero INSTANCE = new ExtraDataZero();
+
   @Override
   public boolean canHandle(GameObject object, int length) {
     return length == 4;
@@ -25,12 +27,12 @@ public class ExtraDataZeroHandler implements ExtraDataHandler {
       System.err.println("Expected int after properties to be 0 but found " + shouldBeZero + " at " + Integer.toHexString(archive.position() - 4));
     }
 
-    return new ExtraDataZero();
+    return INSTANCE;
   }
 
   @Override
   public ExtraData read(GameObject object, JsonValue value) {
-    return new ExtraDataZero();
+    return INSTANCE;
   }
 
 }

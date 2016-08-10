@@ -8,6 +8,8 @@ import qowyn.ark.GameObject;
 
 public class ExtraDataCharacterHandler implements ExtraDataHandler {
 
+  private static final ExtraDataCharacter INSTANCE = new ExtraDataCharacter();
+
   @Override
   public boolean canHandle(GameObject object, int length) {
     return object.getClassString().contains("_Character_");
@@ -30,12 +32,12 @@ public class ExtraDataCharacterHandler implements ExtraDataHandler {
       System.err.println("Expected int after properties to be 1 but found " + shouldBeOne + " at " + Integer.toHexString(archive.position() - 4));
     }
 
-    return new ExtraDataCharacter();
+    return INSTANCE;
   }
 
   @Override
   public ExtraData read(GameObject object, JsonValue value) {
-    return new ExtraDataCharacter();
+    return INSTANCE;
   }
 
 }
