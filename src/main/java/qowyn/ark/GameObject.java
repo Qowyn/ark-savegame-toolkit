@@ -2,9 +2,11 @@ package qowyn.ark;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 import javax.json.Json;
@@ -24,6 +26,12 @@ import qowyn.ark.types.ArkName;
 import qowyn.ark.types.LocationData;
 
 public class GameObject implements PropertyContainer, NameContainer {
+
+  private static final String NULL_UUID_STRING = "00000000-0000-0000-0000-000000000000";
+
+  private static final UUID NULL_UUID = UUID.fromString(NULL_UUID_STRING);
+
+  private static final Map<LongLong, UUID> UUID_CACHE = new ConcurrentHashMap<>();
 
   private int id;
 
@@ -163,10 +171,6 @@ public class GameObject implements PropertyContainer, NameContainer {
     }
   }
 
-  private static final String NULL_UUID_STRING = "00000000-0000-0000-0000-000000000000";
-
-  private static final UUID NULL_UUID = UUID.fromString(NULL_UUID_STRING);
-
   public void fromJson(JsonObject o, boolean loadProperties) {
     uuid = UUID.fromString(o.getString("uuid", NULL_UUID_STRING));
     className = new ArkName(o.getString("class", ""));
@@ -287,7 +291,7 @@ public class GameObject implements PropertyContainer, NameContainer {
     long uuidMostSig = archive.getLong();
     long uuidLeastSig = archive.getLong();
 
-    uuid = new UUID(uuidMostSig, uuidLeastSig);
+    uuid = UUID_CACHE.computeIfAbsent(new LongLong(uuidMostSig, uuidLeastSig), ll -> new UUID(ll.getHigh(), ll.getLow()));
 
     className = archive.getName();
 
