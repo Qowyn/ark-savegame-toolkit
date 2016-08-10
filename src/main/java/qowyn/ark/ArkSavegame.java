@@ -2,9 +2,10 @@ package qowyn.ark;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashSet;
@@ -56,14 +57,22 @@ public class ArkSavegame {
   }
 
   public ArkSavegame(String fileName, ReadingOptions options) throws IOException {
-    try (RandomAccessFile raf = new RandomAccessFile(fileName, "r")) {
+    try (FileChannel fc = FileChannel.open(Paths.get(fileName), StandardOpenOption.READ)) {
+      if (fc.size() > Integer.MAX_VALUE) {
+        throw new RuntimeException("Input file is too large.");
+      }
       ByteBuffer buffer;
       if (options.usesMemoryMapping()) {
-        FileChannel fc = raf.getChannel();
         buffer = fc.map(FileChannel.MapMode.READ_ONLY, 0, fc.size());
       } else {
-        buffer = ByteBuffer.allocate((int) raf.length());
-        raf.read(buffer.array());
+        buffer = ByteBuffer.allocateDirect((int) fc.size());
+        int bytesRead = fc.read(buffer);
+        int totalRead = bytesRead;
+        while (bytesRead != -1 && totalRead < fc.size()) {
+          bytesRead = fc.read(buffer);
+          totalRead += bytesRead;
+        }
+        buffer.clear();
       }
       ArkArchive archive = new ArkArchive(buffer);
       readBinary(archive, options);
@@ -276,15 +285,13 @@ public class ArkSavegame {
 
     size += calculateObjectPropertiesSize(saveVersion == 6);
 
-    try (RandomAccessFile raf = new RandomAccessFile(fileName, "rw")) {
-      raf.setLength(size);
+    try (FileChannel fc = FileChannel.open(Paths.get(fileName), StandardOpenOption.CREATE, StandardOpenOption.READ, StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING)) {
       ByteBuffer buffer;
 
       if (options.usesMemoryMapping()) {
-        FileChannel fc = raf.getChannel();
         buffer = fc.map(FileChannel.MapMode.READ_WRITE, 0, size);
       } else {
-        buffer = ByteBuffer.allocate(size);
+        buffer = ByteBuffer.allocateDirect(size);
       }
 
       ArkArchive archive = new ArkArchive(buffer);
@@ -306,7 +313,13 @@ public class ArkSavegame {
       writeBinaryProperties(archive, options);
 
       if (!options.usesMemoryMapping()) {
-        raf.write(buffer.array());
+        buffer.clear();
+        int bytesWritten = fc.write(buffer);
+        int totalBytes = bytesWritten;
+        while (totalBytes < buffer.capacity()) {
+          bytesWritten = fc.write(buffer);
+          totalBytes += bytesWritten;
+        }
       }
     }
 
