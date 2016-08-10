@@ -3,7 +3,6 @@ package qowyn.ark;
 import java.nio.BufferOverflowException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
-import java.nio.charset.CharsetEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -24,17 +23,16 @@ public class ArkArchive {
 
   private Map<String, Integer> nameMap;
 
-  // CharsetEncoder is not thread safe
-  private static final ThreadLocal<CharsetEncoder> ENCODER = ThreadLocal.withInitial(StandardCharsets.US_ASCII::newEncoder);
-
   private static final Logger LOGGER = Logger.getLogger(ArkArchive.class.getName());
 
-  private final char[] smallCharBuffer = new char[4096];
+  private static final int BUFFER_LENGTH = 4096;
 
-  private final byte[] smallByteBuffer = new byte[4096];
+  private final char[] smallCharBuffer = new char[BUFFER_LENGTH];
+
+  private final byte[] smallByteBuffer = new byte[BUFFER_LENGTH];
 
   // cache for ArkNames if using nameTable (.ark V6)
-  private final Map<String, Map<Integer, ArkName>> nameCache;
+  private final Map<StringInteger, ArkName> nameCache;
 
   // cache for ArkNames if not using nameTable (.arkprofile, .arktribe, .ark V5)
   private final Map<String, ArkName> nameCacheWithoutTable;
@@ -90,11 +88,8 @@ public class ArkArchive {
     String nameString = nameTable.get(id - 1);
     int nameIndex = mbb.getInt();
 
-    // Get or create map for index values
-    Map<Integer, ArkName> indexMap = nameCache.computeIfAbsent(nameString, s -> new HashMap<>());
-
     // Get or create ArkName
-    return indexMap.computeIfAbsent(nameIndex, index -> new ArkName(nameString, index));
+    return nameCache.computeIfAbsent(new StringInteger(nameString, nameIndex), si -> new ArkName(si.getString(), si.getInteger()));
   }
 
   public String getString() {
@@ -113,7 +108,7 @@ public class ArkArchive {
       throw new BufferOverflowException();
     }
 
-    boolean isLarge = absSize > 4096;
+    boolean isLarge = absSize > BUFFER_LENGTH;
 
     if (isLarge) {
       LOGGER.log(Level.INFO, LoggerHelper.format("Large String (%d) at %h", absSize, mbb.position() - 4));
@@ -131,7 +126,7 @@ public class ArkArchive {
       byte[] buffer = isLarge ? new byte[absSize] : smallByteBuffer;
       mbb.get(buffer, 0, absSize);
 
-      return new String(buffer, 0, absSize - 1, StandardCharsets.UTF_8);
+      return new String(buffer, 0, absSize - 1, StandardCharsets.US_ASCII);
     }
   }
 
@@ -251,7 +246,7 @@ public class ArkArchive {
     }
 
     int length = string.length() + 1;
-    boolean multibyte = !ENCODER.get().canEncode(string);
+    boolean multibyte = !isAscii(string);
 
     if (!multibyte) {
       mbb.putInt(length);
@@ -346,9 +341,18 @@ public class ArkArchive {
       return 5; // Better be safe and write a "\0" String
     }
     int length = value.length() + 1;
-    boolean multibyte = !ENCODER.get().canEncode(value);
+    boolean multibyte = !isAscii(value);
 
     return (multibyte ? length * 2 : length) + 4;
+  }
+
+  private static boolean isAscii(String value) {
+    for (int i = 0; i < value.length(); i++) {
+      if (value.charAt(i) > '\u007f') {
+        return false;
+      }
+    }
+    return true;
   }
 
 }
