@@ -1,6 +1,7 @@
 package qowyn.ark.structs;
 
 import javax.json.Json;
+import javax.json.JsonObject;
 import javax.json.JsonObjectBuilder;
 import javax.json.JsonValue;
 
@@ -22,6 +23,11 @@ public class StructUniqueNetIdRepl extends StructBase {
 
   public StructUniqueNetIdRepl(JsonValue v, ArkName structType) {
     super(structType);
+
+    JsonObject object = (JsonObject)v;
+
+    unk = object.getInt("unk", 0);
+    netId = object.getString("netId", "");
   }
 
   @Override
