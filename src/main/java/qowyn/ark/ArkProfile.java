@@ -5,12 +5,15 @@ import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
+import java.util.List;
 
 import javax.json.Json;
 import javax.json.JsonObject;
 import javax.json.JsonObjectBuilder;
 
-public class ArkProfile {
+import qowyn.ark.properties.Property;
+
+public class ArkProfile implements PropertyContainer {
 
   private int profileVersion;
 
@@ -113,6 +116,16 @@ public class ArkProfile {
 
   public void setProfile(GameObject profile) {
     this.profile = profile;
+  }
+
+  @Override
+  public List<Property<?>> getProperties() {
+    return profile.getProperties();
+  }
+
+  @Override
+  public void setProperties(List<Property<?>> properties) {
+    profile.setProperties(properties);
   }
 
 }
