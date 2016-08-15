@@ -29,6 +29,7 @@ public class StructRegistry {
     addStruct("PrimalPlayerCharacterConfigStruct", StructPropertyList::new, StructPropertyList::new);
     addStruct("PrimalPersistentCharacterStatsStruct", StructPropertyList::new, StructPropertyList::new);
     addStruct("TribeData", StructPropertyList::new, StructPropertyList::new);
+    addStruct("TribeGovernment", StructPropertyList::new, StructPropertyList::new);
     addStruct("Vector", StructVector::new, StructVector::new);
     addStruct("Quat", StructQuat::new, StructQuat::new);
     addStruct("Color", StructColor::new, StructColor::new);

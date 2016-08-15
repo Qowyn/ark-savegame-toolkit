@@ -25,6 +25,7 @@ public final class ArkArrayRegistry {
     addArray("StructProperty", ArkArrayStruct::new, ArkArrayStruct::new);
     addArray("UInt32Property", ArkArrayInteger::new, ArkArrayInteger::new);
     addArray("IntProperty", ArkArrayInteger::new, ArkArrayInteger::new);
+    addArray("ByteProperty", ArkArrayByte::new, ArkArrayByte::new);
     addArray("StrProperty", ArkArrayString::new, ArkArrayString::new);
   }
 
