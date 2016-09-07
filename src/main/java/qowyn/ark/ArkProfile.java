@@ -2,12 +2,16 @@ package qowyn.ark;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
+import java.util.ArrayList;
 import java.util.List;
 
 import javax.json.Json;
+import javax.json.JsonArray;
+import javax.json.JsonArrayBuilder;
 import javax.json.JsonObject;
 import javax.json.JsonObjectBuilder;
 
@@ -17,15 +21,35 @@ public class ArkProfile implements PropertyContainer {
 
   private int profileVersion;
 
+  private final List<GameObject> objects = new ArrayList<>();
+
   private GameObject profile;
 
   public ArkProfile() {}
 
   public ArkProfile(String fileName) throws FileNotFoundException, IOException {
-    try (RandomAccessFile raf = new RandomAccessFile(fileName, "r")) {
-      FileChannel fc = raf.getChannel();
-      ArkArchive archive = new ArkArchive(fc.map(FileChannel.MapMode.READ_ONLY, 0, fc.size()));
+    this(fileName, new ReadingOptions());
+  }
 
+  public ArkProfile(String fileName, ReadingOptions options) throws FileNotFoundException, IOException {
+    try (FileChannel fc = FileChannel.open(Paths.get(fileName), StandardOpenOption.READ)) {
+      if (fc.size() > Integer.MAX_VALUE) {
+        throw new RuntimeException("Input file is too large.");
+      }
+      ByteBuffer buffer;
+      if (options.usesMemoryMapping()) {
+        buffer = fc.map(FileChannel.MapMode.READ_ONLY, 0, fc.size());
+      } else {
+        buffer = ByteBuffer.allocateDirect((int) fc.size());
+        int bytesRead = fc.read(buffer);
+        int totalRead = bytesRead;
+        while (bytesRead != -1 && totalRead < fc.size()) {
+          bytesRead = fc.read(buffer);
+          totalRead += bytesRead;
+        }
+        buffer.clear();
+      }
+      ArkArchive archive = new ArkArchive(buffer);
       readBinary(archive);
     }
   }
@@ -43,12 +67,17 @@ public class ArkProfile implements PropertyContainer {
 
     int profilesCount = archive.getInt();
 
-    if (profilesCount != 1) {
-      throw new UnsupportedOperationException("Unsupported count of profiles " + profilesCount);
+    for (int i = 0; i < profilesCount; i++) {
+      objects.add(new GameObject(archive));
     }
 
-    profile = new GameObject(archive);
-    profile.loadProperties(archive, null, 0);
+    for (int i = 0; i < profilesCount; i++) {
+      GameObject object = objects.get(i);
+      if (object.getClassString().equals("PrimalPlayerData")) {
+        profile = object;
+      }
+      object.loadProperties(archive, i < profilesCount - 1 ? objects.get(i + 1) : null, 0);
+    }
   }
 
   public void writeBinary(String fileName) throws FileNotFoundException, IOException {
@@ -58,39 +87,61 @@ public class ArkProfile implements PropertyContainer {
   public void writeBinary(String fileName, WritingOptions options) throws FileNotFoundException, IOException {
     int size = Integer.BYTES * 2;
 
-    size += profile.getSize(false);
+    size += objects.stream().mapToInt(object -> object.getSize(false)).sum();
 
     int propertiesBlockOffset = size;
 
-    size += profile.getPropertiesSize(false);
+    size += objects.stream().mapToInt(object -> object.getPropertiesSize(false)).sum();
 
-    try (RandomAccessFile raf = new RandomAccessFile(fileName, "rw")) {
-      raf.setLength(size);
+    try (FileChannel fc = FileChannel.open(Paths.get(fileName), StandardOpenOption.CREATE, StandardOpenOption.READ, StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING)) {
       ByteBuffer buffer;
 
       if (options.usesMemoryMapping()) {
-        FileChannel fc = raf.getChannel();
         buffer = fc.map(FileChannel.MapMode.READ_WRITE, 0, size);
       } else {
-        buffer = ByteBuffer.allocate(size);
+        buffer = ByteBuffer.allocateDirect(size);
       }
 
       ArkArchive archive = new ArkArchive(buffer);
 
       archive.putInt(profileVersion);
-      archive.putInt(1);
-      profile.write(archive, propertiesBlockOffset);
-      profile.writeProperties(archive, 0);
+      archive.putInt(objects.size());
+
+      for (GameObject object : objects) {
+        propertiesBlockOffset = object.write(archive, propertiesBlockOffset);
+      }
+
+      for (GameObject object : objects) {
+        object.writeProperties(archive, 0);
+      }
 
       if (!options.usesMemoryMapping()) {
-        raf.write(buffer.array());
+        buffer.clear();
+        int bytesWritten = fc.write(buffer);
+        int totalBytes = bytesWritten;
+        while (totalBytes < buffer.capacity()) {
+          bytesWritten = fc.write(buffer);
+          totalBytes += bytesWritten;
+        }
       }
     }
   }
 
   public void readJson(JsonObject object) {
     profileVersion = object.getInt("profileVersion");
-    profile = new GameObject(object.getJsonObject("profile"));
+    objects.clear();
+
+    JsonObject profile = object.getJsonObject("profile");
+    if (profile != null) {
+      setProfile(new GameObject(profile));
+    }
+
+    JsonArray profileObjects = object.getJsonArray("objects");
+    if (profileObjects != null) {
+      for (JsonObject profileObject : profileObjects.getValuesAs(JsonObject.class)) {
+        objects.add(new GameObject(profileObject));
+      }
+    }
   }
 
   public JsonObject toJson() {
@@ -98,6 +149,18 @@ public class ArkProfile implements PropertyContainer {
 
     job.add("profileVersion", profileVersion);
     job.add("profile", profile.toJson());
+
+    if (objects.size() > 1) {
+      JsonArrayBuilder additionalObjects = Json.createArrayBuilder();
+      for (GameObject object : objects) {
+        if (object == profile) {
+          continue;
+        }
+
+        additionalObjects.add(object.toJson());
+      }
+      job.add("objects", additionalObjects.build());
+    }
 
     return job.build();
   }
@@ -110,12 +173,25 @@ public class ArkProfile implements PropertyContainer {
     this.profileVersion = profileVersion;
   }
 
+  public List<GameObject> getObjects() {
+    return objects;
+  }
+
   public GameObject getProfile() {
     return profile;
   }
 
   public void setProfile(GameObject profile) {
+    if (this.profile != null) {
+      int oldIndex = objects.indexOf(this.profile);
+      if (oldIndex > -1) {
+        objects.remove(oldIndex);
+      }
+    }
     this.profile = profile;
+    if (profile != null && objects.indexOf(profile) == -1) {
+      objects.add(0, profile);
+    }
   }
 
   @Override
