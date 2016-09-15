@@ -27,6 +27,7 @@ public final class ArkArrayRegistry {
     addArray("IntProperty", ArkArrayInteger::new, ArkArrayInteger::new);
     addArray("ByteProperty", ArkArrayByte::new, ArkArrayByte::new);
     addArray("StrProperty", ArkArrayString::new, ArkArrayString::new);
+    addArray("UInt64Property", ArkArrayLong::new, ArkArrayLong::new);
   }
 
   public static ArkArray<?> read(ArkArchive archive, ArkName arrayType, ArkName propertyName) {
