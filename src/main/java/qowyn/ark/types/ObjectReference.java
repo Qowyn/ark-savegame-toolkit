@@ -11,8 +11,8 @@ import javax.json.JsonValue;
 import javax.json.JsonValue.ValueType;
 
 import qowyn.ark.ArkArchive;
-import qowyn.ark.ArkSavegame;
 import qowyn.ark.GameObject;
+import qowyn.ark.GameObjectContainer;
 import qowyn.ark.NameContainer;
 
 public class ObjectReference implements NameContainer {
@@ -87,10 +87,10 @@ public class ObjectReference implements NameContainer {
     return "ObjectReference [objectType=" + objectType + ", objectId=" + objectId + ", objectString=" + objectString + ", length=" + length + "]";
   }
 
-  public GameObject getObject(ArkSavegame saveFile) {
+  public GameObject getObject(GameObjectContainer objectContainer) {
 
-    if (objectType == TYPE_ID && objectId >= 0 && objectId < saveFile.getObjects().size()) {
-      return saveFile.getObjects().get(objectId);
+    if (objectType == TYPE_ID && objectId > -1 && objectId < objectContainer.getObjects().size()) {
+      return objectContainer.getObjects().get(objectId);
     }
 
     return null;

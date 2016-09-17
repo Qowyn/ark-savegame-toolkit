@@ -34,7 +34,7 @@ import qowyn.ark.disruptor.JsonObjectEvent;
 import qowyn.ark.types.EmbeddedData;
 import qowyn.ark.types.ObjectReference;
 
-public class ArkSavegame {
+public class ArkSavegame implements GameObjectContainer {
 
   protected short saveVersion;
 
@@ -119,24 +119,13 @@ public class ArkSavegame {
     this.embeddedData = Objects.requireNonNull(embeddedData);
   }
 
+  @Override
   public List<GameObject> getObjects() {
     return objects;
   }
 
   public void setObjects(List<GameObject> objects) {
     this.objects = Objects.requireNonNull(objects);
-  }
-
-  public GameObject getObject(ObjectReference reference) {
-    if (reference == null || reference.getObjectType() != ObjectReference.TYPE_ID) {
-      return null;
-    }
-
-    if (reference.getObjectId() > -1 && reference.getObjectId() < objects.size()) {
-      return objects.get(reference.getObjectId());
-    } else {
-      return null;
-    }
   }
 
   public void readBinary(ArkArchive archive, ReadingOptions options) {

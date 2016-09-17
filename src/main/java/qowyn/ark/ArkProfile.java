@@ -17,7 +17,7 @@ import javax.json.JsonObjectBuilder;
 
 import qowyn.ark.properties.Property;
 
-public class ArkProfile implements PropertyContainer {
+public class ArkProfile implements PropertyContainer, GameObjectContainer {
 
   private int profileVersion;
 

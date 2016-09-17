@@ -17,7 +17,7 @@ import javax.json.JsonObjectBuilder;
 
 import qowyn.ark.properties.Property;
 
-public class ArkCloudInventory implements PropertyContainer {
+public class ArkCloudInventory implements PropertyContainer, GameObjectContainer {
 
   private int inventoryVersion;
 

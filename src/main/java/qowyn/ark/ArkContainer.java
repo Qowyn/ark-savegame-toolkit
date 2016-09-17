@@ -13,25 +13,20 @@ import javax.json.Json;
 import javax.json.JsonArray;
 import javax.json.JsonArrayBuilder;
 import javax.json.JsonObject;
-import javax.json.JsonObjectBuilder;
 
-import qowyn.ark.properties.Property;
+import qowyn.ark.arrays.ArkArrayByte;
 
-public class ArkTribe implements PropertyContainer, GameObjectContainer {
-
-  private int tribeVersion;
+public class ArkContainer implements GameObjectContainer {
 
   private final List<GameObject> objects = new ArrayList<>();
 
-  private GameObject tribe;
+  public ArkContainer() {}
 
-  public ArkTribe() {}
-
-  public ArkTribe(String fileName) throws FileNotFoundException, IOException {
+  public ArkContainer(String fileName) throws FileNotFoundException, IOException {
     this(fileName, new ReadingOptions());
   }
 
-  public ArkTribe(String fileName, ReadingOptions options) throws FileNotFoundException, IOException {
+  public ArkContainer(String fileName, ReadingOptions options) throws FileNotFoundException, IOException {
     try (FileChannel fc = FileChannel.open(Paths.get(fileName), StandardOpenOption.READ)) {
       if (fc.size() > Integer.MAX_VALUE) {
         throw new RuntimeException("Input file is too large.");
@@ -54,29 +49,30 @@ public class ArkTribe implements PropertyContainer, GameObjectContainer {
     }
   }
 
-  public ArkTribe(JsonObject object) {
-    readJson(object);
+  public ArkContainer(ArkArrayByte source) {
+    ByteBuffer buffer = ByteBuffer.allocateDirect(source.size());
+
+    source.forEach(buffer::put);
+
+    buffer.clear();
+
+    ArkArchive archive = new ArkArchive(buffer);
+    readBinary(archive);
+  }
+
+  public ArkContainer(JsonArray jsonObjects) {
+    readJson(jsonObjects);
   }
 
   public void readBinary(ArkArchive archive) {
-    tribeVersion = archive.getInt();
+    int objectCount = archive.getInt();
 
-    if (tribeVersion != 1) {
-      throw new UnsupportedOperationException("Unknown Tribe Version " + tribeVersion);
-    }
-
-    int tribesCount = archive.getInt();
-
-    for (int i = 0; i < tribesCount; i++) {
+    for (int i = 0; i < objectCount; i++) {
       objects.add(new GameObject(archive));
     }
 
-    for (int i = 0; i < tribesCount; i++) {
-      GameObject object = objects.get(i);
-      if (object.getClassString().equals("PrimalTribeData")) {
-        tribe = object;
-      }
-      object.loadProperties(archive, i < tribesCount - 1 ? objects.get(i + 1) : null, 0);
+    for (int i = 0; i < objectCount; i++) {
+      objects.get(i).loadProperties(archive, i < objectCount - 1 ? objects.get(i + 1) : null, 0);
     }
   }
 
@@ -85,7 +81,7 @@ public class ArkTribe implements PropertyContainer, GameObjectContainer {
   }
 
   public void writeBinary(String fileName, WritingOptions options) throws FileNotFoundException, IOException {
-    int size = Integer.BYTES * 2;
+    int size = Integer.BYTES;
 
     size += objects.stream().mapToInt(object -> object.getSize(false)).sum();
 
@@ -104,7 +100,6 @@ public class ArkTribe implements PropertyContainer, GameObjectContainer {
 
       ArkArchive archive = new ArkArchive(buffer);
 
-      archive.putInt(tribeVersion);
       archive.putInt(objects.size());
 
       for (GameObject object : objects) {
@@ -127,72 +122,59 @@ public class ArkTribe implements PropertyContainer, GameObjectContainer {
     }
   }
 
-  public void readJson(JsonObject object) {
-    tribeVersion = object.getInt("tribeVersion");
+  public void readJson(JsonArray jsonObjects) {
     objects.clear();
 
-    JsonObject tribe = object.getJsonObject("tribe");
-    if (tribe != null) {
-      setTribe(new GameObject(tribe));
-    }
-
-    JsonArray tribeObjects = object.getJsonArray("objects");
-    if (tribeObjects != null) {
-      for (JsonObject tribeObject : tribeObjects.getValuesAs(JsonObject.class)) {
-        objects.add(new GameObject(tribeObject));
-      }
+    for (JsonObject jsonObject : jsonObjects.getValuesAs(JsonObject.class)) {
+      objects.add(new GameObject(jsonObject));
     }
   }
 
-  public JsonObject toJson() {
-    JsonObjectBuilder job = Json.createObjectBuilder();
+  public JsonArray toJson() {
+    JsonArrayBuilder jab = Json.createArrayBuilder();
 
-    job.add("tribeVersion", tribeVersion);
-    job.add("tribe", tribe.toJson());
-
-    if (objects.size() > 1) {
-      JsonArrayBuilder additionalObjects = Json.createArrayBuilder();
-      for (GameObject object : objects) {
-        if (object == tribe) {
-          continue;
-        }
-
-        additionalObjects.add(object.toJson());
-      }
-      job.add("objects", additionalObjects.build());
+    for (GameObject object : objects) {
+      jab.add(object.toJson());
     }
 
-    return job.build();
-  }
-
-  public int getTribeVersion() {
-    return tribeVersion;
-  }
-
-  public void setTribeVersion(int tribeVersion) {
-    this.tribeVersion = tribeVersion;
+    return jab.build();
   }
 
   public List<GameObject> getObjects() {
     return objects;
   }
 
-  public GameObject getTribe() {
-    return tribe;
-  }
+  public ArkArrayByte toByteArray() {
+    int size = Integer.BYTES;
 
-  public void setTribe(GameObject tribe) {
-    this.tribe = tribe;
-  }
+    size += objects.stream().mapToInt(object -> object.getSize(false)).sum();
 
-  @Override
-  public List<Property<?>> getProperties() {
-    return tribe.getProperties();
-  }
+    int propertiesBlockOffset = size;
 
-  @Override
-  public void setProperties(List<Property<?>> properties) {
-    tribe.setProperties(properties);
+    size += objects.stream().mapToInt(object -> object.getPropertiesSize(false)).sum();
+
+    ByteBuffer buffer = ByteBuffer.allocateDirect(size);
+    ArkArchive archive = new ArkArchive(buffer);
+
+    archive.putInt(objects.size());
+
+    for (GameObject object : objects) {
+      propertiesBlockOffset = object.write(archive, propertiesBlockOffset);
+    }
+
+    for (GameObject object : objects) {
+      object.writeProperties(archive, 0);
+    }
+
+    ArkArrayByte result = new ArkArrayByte();
+
+    buffer.clear();
+
+    for (int n = 0; n < size; n++) {
+      result.add(buffer.get());
+    }
+
+    return result;
   }
 
 }
