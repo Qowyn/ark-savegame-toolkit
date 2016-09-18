@@ -17,6 +17,17 @@ public class StructVector extends StructBase {
 
   private float z;
 
+  public StructVector(ArkName structType) {
+    super(structType);
+  }
+
+  public StructVector(ArkName structType, float x, float y, float z) {
+    super(structType);
+    this.x = x;
+    this.y = y;
+    this.z = z;
+  }
+
   public StructVector(ArkArchive archive, ArkName structType) {
     super(structType);
 

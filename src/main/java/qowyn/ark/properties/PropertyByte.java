@@ -12,7 +12,13 @@ import qowyn.ark.types.ArkName;
 
 public class PropertyByte extends PropertyBase<ArkByteValue> {
 
-  private ArkByteValue value;
+  public PropertyByte(String name, String typeName, ArkByteValue value) {
+    super(name, typeName, 0, value);
+  }
+
+  public PropertyByte(String name, String typeName, int index, ArkByteValue value) {
+    super(name, typeName, index, value);
+  }
 
   public PropertyByte(ArkArchive archive, PropertyArgs args) {
     super(archive, args);

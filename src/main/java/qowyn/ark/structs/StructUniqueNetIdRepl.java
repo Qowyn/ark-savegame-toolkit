@@ -14,6 +14,16 @@ public class StructUniqueNetIdRepl extends StructBase {
 
   private String netId;
 
+  public StructUniqueNetIdRepl(ArkName structType) {
+    super(structType);
+  }
+
+  public StructUniqueNetIdRepl(ArkName structType, int unk, String netId) {
+    super(structType);
+    this.unk = unk;
+    this.netId = netId;
+  }
+
   public StructUniqueNetIdRepl(ArkArchive archive, ArkName structType) {
     super(structType);
 

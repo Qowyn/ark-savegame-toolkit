@@ -14,7 +14,15 @@ public class PropertyArray extends PropertyBase<ArkArray<?>> {
 
   private ArkName arrayType;
 
-  private ArkArray<?> value;
+  public PropertyArray(String name, String typeName, ArkArray<?> value, ArkName arrayType) {
+    super(name, typeName, 0, value);
+    this.arrayType = arrayType;
+  }
+
+  public PropertyArray(String name, String typeName, int index, ArkArray<?> value, ArkName arrayType) {
+    super(name, typeName, index, value);
+    this.arrayType = arrayType;
+  }
 
   public PropertyArray(ArkArchive archive, PropertyArgs args) {
     super(archive, args);

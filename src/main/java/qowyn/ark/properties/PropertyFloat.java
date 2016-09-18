@@ -11,7 +11,13 @@ import qowyn.ark.ArkArchive;
 
 public class PropertyFloat extends PropertyBase<Float> {
 
-  private float value;
+  public PropertyFloat(String name, String typeName, float value) {
+    super(name, typeName, 0, value);
+  }
+
+  public PropertyFloat(String name, String typeName, int index, float value) {
+    super(name, typeName, index, value);
+  }
 
   public PropertyFloat(ArkArchive archive, PropertyArgs args) {
     super(archive, args);

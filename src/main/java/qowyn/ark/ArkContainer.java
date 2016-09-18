@@ -13,6 +13,9 @@ import javax.json.Json;
 import javax.json.JsonArray;
 import javax.json.JsonArrayBuilder;
 import javax.json.JsonObject;
+import javax.json.JsonStructure;
+import javax.json.JsonValue.ValueType;
+import javax.json.stream.JsonGenerator;
 
 import qowyn.ark.arrays.ArkArrayByte;
 
@@ -122,12 +125,35 @@ public class ArkContainer implements GameObjectContainer {
     }
   }
 
-  public void readJson(JsonArray jsonObjects) {
+  public void readJson(JsonStructure jsonObjects) {
     objects.clear();
 
-    for (JsonObject jsonObject : jsonObjects.getValuesAs(JsonObject.class)) {
-      objects.add(new GameObject(jsonObject));
+    if (jsonObjects.getValueType() == ValueType.ARRAY) {
+      int id = 0;
+      for (JsonObject jsonObject : ((JsonArray) jsonObjects).getValuesAs(JsonObject.class)) {
+        objects.add(new GameObject(jsonObject));
+        objects.get(id).setId(id++); // Set id and increase afterwards
+      }
+    } else {
+      JsonArray objectsArray = ((JsonObject) jsonObjects).getJsonArray("objects");
+      if (objectsArray != null) {
+        objectsArray.getValuesAs(JsonObject.class).forEach(o -> objects.add(new GameObject(o)));
+
+        for (int i = 0; i < objects.size(); i++) {
+          objects.get(i).setId(i);
+        }
+      }
     }
+  }
+
+  public void writeJson(JsonGenerator generator) {
+    generator.writeStartArray();
+
+    for (GameObject object : objects) {
+      generator.write(object.toJson(true));
+    }
+
+    generator.writeEnd();
   }
 
   public JsonArray toJson() {

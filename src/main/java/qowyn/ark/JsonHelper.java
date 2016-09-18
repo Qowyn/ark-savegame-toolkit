@@ -3,6 +3,9 @@ package qowyn.ark;
 import javax.json.JsonNumber;
 import javax.json.JsonObject;
 import javax.json.JsonObjectBuilder;
+import javax.json.JsonString;
+import javax.json.JsonValue;
+import javax.json.JsonValue.ValueType;
 
 public class JsonHelper {
 
@@ -11,10 +14,14 @@ public class JsonHelper {
   }
 
   public static float getFloat(JsonObject object, String name, float defaultValue) {
-    JsonNumber n = object.getJsonNumber(name);
+    JsonValue value = object.get(name);
 
-    if (n != null) {
-      return n.bigDecimalValue().floatValue();
+    if (value != null) {
+      if (value.getValueType() == ValueType.NUMBER) {
+        return ((JsonNumber) value).bigDecimalValue().floatValue();
+      } else if (value.getValueType() == ValueType.STRING) {
+        return Float.parseFloat(((JsonString) value).getString());
+      }
     }
 
     return defaultValue;
@@ -26,7 +33,11 @@ public class JsonHelper {
 
   public static void addFloat(JsonObjectBuilder builder, String name, float value, float defaultValue) {
     if (value != defaultValue) {
-      builder.add(name, value);
+      if (Float.isFinite(value)) {
+        builder.add(name, value);
+      } else { // NaN, +Infinity, -Infinity
+        builder.add(name, Float.toString(value));
+      }
     }
   }
 

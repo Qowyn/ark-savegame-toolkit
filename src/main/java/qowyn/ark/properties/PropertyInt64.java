@@ -7,7 +7,13 @@ import qowyn.ark.ArkArchive;
 
 public class PropertyInt64 extends PropertyBase<Long> {
 
-  private long value;
+  public PropertyInt64(String name, String typeName, long value) {
+    super(name, typeName, 0, value);
+  }
+
+  public PropertyInt64(String name, String typeName, int index, long value) {
+    super(name, typeName, index, value);
+  }
 
   public PropertyInt64(ArkArchive archive, PropertyArgs args) {
     super(archive, args);

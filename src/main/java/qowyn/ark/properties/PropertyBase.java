@@ -20,6 +20,15 @@ public abstract class PropertyBase<T> implements Property<T> {
 
   protected int index;
 
+  protected T value;
+
+  public PropertyBase(String name, String typeName, int index, T value) {
+    this.name = new ArkName(name);
+    this.typeName = new ArkName(typeName);
+    this.index = index;
+    this.value = value;
+  }
+
   public PropertyBase(ArkArchive archive, PropertyArgs args) {
     name = args.getName();
     typeName = args.getTypeName();

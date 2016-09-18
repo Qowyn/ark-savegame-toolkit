@@ -514,7 +514,7 @@ public class ArkSavegame implements GameObjectContainer {
 
         RingBuffer<JsonObjectEvent> ringBuffer = disruptor.getRingBuffer();
 
-        objects.forEach(o -> ringBuffer.publishEvent((event, sequence) -> event.set(o.toJson())));
+        objects.forEach(o -> ringBuffer.publishEvent((event, sequence) -> event.set(o.toJson(true))));
 
         disruptor.shutdown();
       } else {

@@ -19,6 +19,18 @@ public class StructLinearColor extends StructBase {
 
   private float a;
 
+  public StructLinearColor(ArkName structType) {
+    super(structType);
+  }
+
+  public StructLinearColor(ArkName structType, float r, float g, float b, float a) {
+    super(structType);
+    this.r = r;
+    this.g = g;
+    this.b = b;
+    this.a = a;
+  }
+
   public StructLinearColor(ArkArchive archive, ArkName structType) {
     super(structType);
 

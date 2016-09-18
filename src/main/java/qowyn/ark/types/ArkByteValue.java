@@ -25,6 +25,18 @@ public class ArkByteValue implements NameContainer {
 
   public ArkByteValue() {}
 
+  public ArkByteValue(byte byteValue) {
+    this.fromEnum = false;
+    this.enumName = NONE_NAME;
+    this.byteValue = byteValue;
+  }
+
+  public ArkByteValue(ArkName enumName, ArkName nameValue) {
+    this.fromEnum = true;
+    this.enumName = enumName;
+    this.nameValue = nameValue;
+  }
+
   public ArkByteValue(ArkArchive archive, ArkName enumName) {
     read(archive, enumName);
   }

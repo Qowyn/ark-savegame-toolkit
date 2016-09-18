@@ -10,7 +10,13 @@ import qowyn.ark.types.ObjectReference;
 
 public class PropertyObject extends PropertyBase<ObjectReference> {
 
-  private ObjectReference value;
+  public PropertyObject(String name, String typeName, ObjectReference value) {
+    super(name, typeName, 0, value);
+  }
+
+  public PropertyObject(String name, String typeName, int index, ObjectReference value) {
+    super(name, typeName, index, value);
+  }
 
   public PropertyObject(ArkArchive archive, PropertyArgs args) {
     super(archive, args);

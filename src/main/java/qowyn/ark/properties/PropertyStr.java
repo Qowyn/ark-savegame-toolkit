@@ -7,7 +7,13 @@ import qowyn.ark.ArkArchive;
 
 public class PropertyStr extends PropertyBase<String> {
 
-  private String value;
+  public PropertyStr(String name, String typeName, String value) {
+    super(name, typeName, 0, value);
+  }
+
+  public PropertyStr(String name, String typeName, int index, String value) {
+    super(name, typeName, index, value);
+  }
 
   public PropertyStr(ArkArchive archive, PropertyArgs args) {
     super(archive, args);

@@ -19,6 +19,18 @@ public class StructQuat extends StructBase {
 
   private float w;
 
+  public StructQuat(ArkName structType) {
+    super(structType);
+  }
+
+  public StructQuat(ArkName structType, float x, float y, float z, float w) {
+    super(structType);
+    this.x = x;
+    this.y = y;
+    this.z = z;
+    this.w = w;
+  }
+
   public StructQuat(ArkArchive archive, ArkName structType) {
     super(structType);
 

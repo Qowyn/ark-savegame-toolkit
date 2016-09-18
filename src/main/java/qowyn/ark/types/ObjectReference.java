@@ -31,6 +31,17 @@ public class ObjectReference implements NameContainer {
 
   public ObjectReference() {}
 
+  public ObjectReference(int length, int objectId) {
+    this.length = length;
+    this.objectId = objectId;
+    this.objectType = TYPE_ID;
+  }
+
+  public ObjectReference(ArkName objectString) {
+    this.objectString = objectString;
+    this.objectType = TYPE_PATH;
+  }
+
   public ObjectReference(ArkArchive archive, int length) {
     this.length = length;
     read(archive);

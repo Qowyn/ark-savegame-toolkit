@@ -11,7 +11,13 @@ import javax.json.JsonValue.ValueType;
 
 public class PropertyDouble extends PropertyBase<Double> {
 
-  private double value;
+  public PropertyDouble(String name, String typeName, double value) {
+    super(name, typeName, 0, value);
+  }
+
+  public PropertyDouble(String name, String typeName, int index, double value) {
+    super(name, typeName, index, value);
+  }
 
   public PropertyDouble(ArkArchive archive, PropertyArgs args) {
     super(archive, args);

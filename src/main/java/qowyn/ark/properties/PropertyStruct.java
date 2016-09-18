@@ -12,7 +12,13 @@ import qowyn.ark.types.ArkName;
 
 public class PropertyStruct extends PropertyBase<Struct> {
 
-  private Struct value;
+  public PropertyStruct(String name, String typeName, Struct value) {
+    super(name, typeName, 0, value);
+  }
+
+  public PropertyStruct(String name, String typeName, int index, Struct value) {
+    super(name, typeName, index, value);
+  }
 
   public PropertyStruct(ArkArchive archive, PropertyArgs args) {
     super(archive, args);

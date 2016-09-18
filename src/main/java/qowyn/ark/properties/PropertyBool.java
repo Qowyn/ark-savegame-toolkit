@@ -7,7 +7,13 @@ import qowyn.ark.ArkArchive;
 
 public class PropertyBool extends PropertyBase<Boolean> {
 
-  private boolean value;
+  public PropertyBool(String name, String typeName, boolean value) {
+    super(name, typeName, 0, value);
+  }
+
+  public PropertyBool(String name, String typeName, int index, boolean value) {
+    super(name, typeName, index, value);
+  }
 
   public PropertyBool(ArkArchive archive, PropertyArgs args) {
     super(archive, args);

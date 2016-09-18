@@ -24,6 +24,18 @@ public class StructColor extends StructBase {
   
   private byte a;
   
+  public StructColor(ArkName structType) {
+    super(structType);
+  }
+  
+  public StructColor(ArkName structType, byte b, byte g, byte r, byte a) {
+    super(structType);
+    this.b = b;
+    this.g = g;
+    this.r = r;
+    this.a = a;
+  }
+
   public StructColor(ArkArchive archive, ArkName structType) {
     super(structType);
 

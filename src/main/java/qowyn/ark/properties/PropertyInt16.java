@@ -7,7 +7,13 @@ import qowyn.ark.ArkArchive;
 
 public class PropertyInt16 extends PropertyBase<Short> {
 
-  private short value;
+  public PropertyInt16(String name, String typeName, short value) {
+    super(name, typeName, 0, value);
+  }
+
+  public PropertyInt16(String name, String typeName, int index, short value) {
+    super(name, typeName, index, value);
+  }
 
   public PropertyInt16(ArkArchive archive, PropertyArgs args) {
     super(archive, args);

@@ -21,6 +21,15 @@ public class StructPropertyList extends StructBase implements PropertyContainer 
 
   private List<Property<?>> properties;
 
+  public StructPropertyList(ArkName structType) {
+    super(structType);
+  }
+
+  public StructPropertyList(ArkName structType, List<Property<?>> properties) {
+    super(structType);
+    this.properties = properties;
+  }
+
   public StructPropertyList(ArkArchive archive, ArkName structType) {
     super(structType);
     properties = new ArrayList<>();
