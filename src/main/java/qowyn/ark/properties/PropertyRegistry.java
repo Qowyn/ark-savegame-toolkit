@@ -37,6 +37,7 @@ public class PropertyRegistry {
     addProperty("Int16Property", PropertyInt16::new, PropertyInt16::new);
     addProperty("UInt64Property", PropertyInt64::new, PropertyInt64::new);
     addProperty("NameProperty", PropertyName::new, PropertyName::new);
+    addProperty("TextProperty", PropertyText::new, PropertyText::new);
   }
 
   public static Property<?> readProperty(ArkArchive archive) {

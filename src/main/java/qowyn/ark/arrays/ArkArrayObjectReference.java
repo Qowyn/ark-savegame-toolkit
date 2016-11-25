@@ -9,7 +9,6 @@ import javax.json.JsonArrayBuilder;
 import javax.json.JsonObject;
 
 import qowyn.ark.ArkArchive;
-import qowyn.ark.types.ArkName;
 import qowyn.ark.types.ObjectReference;
 
 public class ArkArrayObjectReference extends ArrayList<ObjectReference> implements ArkArray<ObjectReference> {
@@ -21,7 +20,7 @@ public class ArkArrayObjectReference extends ArrayList<ObjectReference> implemen
 
   public ArkArrayObjectReference() {}
 
-  public ArkArrayObjectReference(ArkArchive archive, ArkName propertyName) {
+  public ArkArrayObjectReference(ArkArchive archive, int dataSize) {
     int size = archive.getInt();
 
     for (int n = 0; n < size; n++) {
@@ -29,7 +28,7 @@ public class ArkArrayObjectReference extends ArrayList<ObjectReference> implemen
     }
   }
 
-  public ArkArrayObjectReference(JsonArray a, ArkName propertyName) {
+  public ArkArrayObjectReference(JsonArray a, int dataSize) {
     a.getValuesAs(JsonObject.class).forEach(o -> this.add(new ObjectReference(o, 8)));
   }
 

@@ -31,14 +31,15 @@ public class PropertyArray extends PropertyBase<ArkArray<?>> {
     int position = archive.position();
 
     try {
-      value = ArkArrayRegistry.read(archive, arrayType, name);
+      value = ArkArrayRegistry.read(archive, arrayType, dataSize);
 
       if (value == null) {
-        archive.position(position + dataSize);
+        throw new UnreadablePropertyException();
       }
     } catch (UnreadablePropertyException upe) {
       archive.position(position + dataSize);
       System.err.println("Warning: Unreadable ArrayProperty with name " + name + ", skipping.");
+      throw new UnreadablePropertyException();
     }
   }
 
@@ -46,7 +47,7 @@ public class PropertyArray extends PropertyBase<ArkArray<?>> {
     super(o);
     arrayType = new ArkName(o.getString("arrayType"));
 
-    value = ArkArrayRegistry.read(o.getJsonArray("value"), arrayType, name);
+    value = ArkArrayRegistry.read(o.getJsonArray("value"), arrayType, dataSize);
   }
 
   @SuppressWarnings("unchecked")

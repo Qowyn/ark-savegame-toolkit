@@ -9,7 +9,6 @@ import javax.json.JsonArrayBuilder;
 import javax.json.JsonNumber;
 
 import qowyn.ark.ArkArchive;
-import qowyn.ark.types.ArkName;
 
 public class ArkArrayLong extends ArrayList<Long> implements ArkArray<Long> {
 
@@ -20,7 +19,7 @@ public class ArkArrayLong extends ArrayList<Long> implements ArkArray<Long> {
 
   public ArkArrayLong() {}
 
-  public ArkArrayLong(ArkArchive archive, ArkName propertyName) {
+  public ArkArrayLong(ArkArchive archive, int dataSize) {
     int size = archive.getInt();
 
     for (int n = 0; n < size; n++) {
@@ -28,8 +27,8 @@ public class ArkArrayLong extends ArrayList<Long> implements ArkArray<Long> {
     }
   }
 
-  public ArkArrayLong(JsonArray a, ArkName propertyName) {
-    a.getValuesAs(JsonNumber.class).forEach(n -> this.add(n.longValueExact()));
+  public ArkArrayLong(JsonArray a, int dataSize) {
+    a.getValuesAs(JsonNumber.class).forEach(n -> this.add(n.longValue()));
   }
 
   @Override

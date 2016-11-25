@@ -22,10 +22,19 @@ public class ArkArrayStruct extends ArrayList<Struct> implements ArkArray<Struct
 
   public ArkArrayStruct() {}
 
-  public ArkArrayStruct(ArkArchive archive, ArkName propertyName) {
+  public ArkArrayStruct(ArkArchive archive, int dataSize) {
     int size = archive.getInt();
-
-    ArkName structType = StructRegistry.mapArrayNameToTypeName(propertyName);
+    
+    ArkName structType;
+    if (size * 4 + 4 == dataSize) {
+      structType = new ArkName("Color");
+    } else if (size * 12 + 4 == dataSize) {
+      structType = new ArkName("Vector");
+    } else if (size * 16 + 4 == dataSize) {
+      structType = new ArkName("LinearColor");
+    } else {
+      structType = null;
+    }
 
     if (structType != null) {
       for (int n = 0; n < size; n++) {
@@ -38,8 +47,19 @@ public class ArkArrayStruct extends ArrayList<Struct> implements ArkArray<Struct
     }
   }
 
-  public ArkArrayStruct(JsonArray a, ArkName propertyName) {
-    ArkName structType = StructRegistry.mapArrayNameToTypeName(propertyName);
+  public ArkArrayStruct(JsonArray a, int dataSize) {
+    int size = a.size();
+    
+    ArkName structType;
+    if (size * 4 + 4 == dataSize) {
+      structType = new ArkName("Color");
+    } else if (size * 12 + 4 == dataSize) {
+      structType = new ArkName("Vector");
+    } else if (size * 16 + 4 == dataSize) {
+      structType = new ArkName("LinearColor");
+    } else {
+      structType = null;
+    }
 
     if (structType != null) {
       a.forEach(o -> this.add(StructRegistry.read(o, structType)));

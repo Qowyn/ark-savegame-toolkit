@@ -10,35 +10,35 @@ import javax.json.JsonNumber;
 
 import qowyn.ark.ArkArchive;
 
-public class ArkArrayInteger extends ArrayList<Integer> implements ArkArray<Integer> {
+public class ArkArrayInt8 extends ArrayList<Byte> implements ArkArray<Byte> {
 
   /**
    * 
    */
   private static final long serialVersionUID = 1L;
 
-  public ArkArrayInteger() {}
+  public ArkArrayInt8() {}
 
-  public ArkArrayInteger(ArkArchive archive, int dataSize) {
+  public ArkArrayInt8(ArkArchive archive, int dataSize) {
     int size = archive.getInt();
 
     for (int n = 0; n < size; n++) {
-      add(archive.getInt());
+      add(archive.getByte());
     }
   }
 
-  public ArkArrayInteger(JsonArray a, int dataSize) {
-    a.getValuesAs(JsonNumber.class).forEach(n -> this.add(n.intValue()));
+  public ArkArrayInt8(JsonArray a, int dataSize) {
+    a.getValuesAs(JsonNumber.class).forEach(n -> this.add((byte)n.intValue()));
   }
 
   @Override
-  public Class<Integer> getValueClass() {
-    return Integer.class;
+  public Class<Byte> getValueClass() {
+    return Byte.class;
   }
 
   @Override
   public int calculateSize(boolean nameTable) {
-    return Integer.BYTES + size() * Integer.BYTES;
+    return Integer.BYTES + size() * Byte.BYTES;
   }
 
   @Override
@@ -54,7 +54,7 @@ public class ArkArrayInteger extends ArrayList<Integer> implements ArkArray<Inte
   public void write(ArkArchive archive) {
     archive.putInt(size());
 
-    this.forEach(archive::putInt);
+    this.forEach(archive::putByte);
   }
 
   @Override

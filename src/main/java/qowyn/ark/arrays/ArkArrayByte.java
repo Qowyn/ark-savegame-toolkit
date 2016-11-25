@@ -9,12 +9,9 @@ import javax.json.JsonArrayBuilder;
 import javax.json.JsonNumber;
 
 import qowyn.ark.ArkArchive;
-import qowyn.ark.types.ArkName;
+import qowyn.ark.properties.UnreadablePropertyException;
 
 /**
- * This could backfire if ARK introduces an array of enum values for a property.
- *
- * TODO check available size and compare with number of elements
  *
  * @author Roland Firmont
  *
@@ -28,16 +25,20 @@ public class ArkArrayByte extends ArrayList<Byte> implements ArkArray<Byte> {
 
   public ArkArrayByte() {}
 
-  public ArkArrayByte(ArkArchive archive, ArkName propertyName) {
+  public ArkArrayByte(ArkArchive archive, int dataSize) {
     int size = archive.getInt();
+    
+    if (size + 4 != dataSize) {
+      throw new UnreadablePropertyException();
+    }
 
     for (int n = 0; n < size; n++) {
       add(archive.getByte());
     }
   }
 
-  public ArkArrayByte(JsonArray a, ArkName propertyName) {
-    a.getValuesAs(JsonNumber.class).forEach(n -> this.add((byte) n.intValueExact()));
+  public ArkArrayByte(JsonArray a, int dataSize) {
+    a.getValuesAs(JsonNumber.class).forEach(n -> this.add((byte) n.intValue()));
   }
 
   @Override

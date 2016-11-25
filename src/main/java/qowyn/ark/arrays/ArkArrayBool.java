@@ -6,39 +6,39 @@ import java.util.Set;
 import javax.json.Json;
 import javax.json.JsonArray;
 import javax.json.JsonArrayBuilder;
-import javax.json.JsonNumber;
+import javax.json.JsonValue;
 
 import qowyn.ark.ArkArchive;
 
-public class ArkArrayInteger extends ArrayList<Integer> implements ArkArray<Integer> {
+public class ArkArrayBool extends ArrayList<Boolean> implements ArkArray<Boolean> {
 
   /**
    * 
    */
   private static final long serialVersionUID = 1L;
 
-  public ArkArrayInteger() {}
+  public ArkArrayBool() {}
 
-  public ArkArrayInteger(ArkArchive archive, int dataSize) {
+  public ArkArrayBool(ArkArchive archive, int dataSize) {
     int size = archive.getInt();
 
     for (int n = 0; n < size; n++) {
-      add(archive.getInt());
+      add(archive.getByte() != 0);
     }
   }
 
-  public ArkArrayInteger(JsonArray a, int dataSize) {
-    a.getValuesAs(JsonNumber.class).forEach(n -> this.add(n.intValue()));
+  public ArkArrayBool(JsonArray a, int dataSize) {
+    a.forEach(n -> this.add(n != JsonValue.FALSE));
   }
 
   @Override
-  public Class<Integer> getValueClass() {
-    return Integer.class;
+  public Class<Boolean> getValueClass() {
+    return Boolean.class;
   }
 
   @Override
   public int calculateSize(boolean nameTable) {
-    return Integer.BYTES + size() * Integer.BYTES;
+    return Integer.BYTES + size();
   }
 
   @Override
@@ -54,7 +54,7 @@ public class ArkArrayInteger extends ArrayList<Integer> implements ArkArray<Inte
   public void write(ArkArchive archive) {
     archive.putInt(size());
 
-    this.forEach(archive::putInt);
+    this.forEach(b -> archive.putByte((byte) (b ? 1 : 0)));
   }
 
   @Override
