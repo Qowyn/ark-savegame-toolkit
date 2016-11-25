@@ -21,6 +21,9 @@ public class ObjectReference implements NameContainer {
 
   public static final int TYPE_PATH = 1;
 
+  // Temporary, to support path references in sav files
+  public static final int TYPE_PATH_NO_TYPE = 2;
+
   private int length;
 
   private int objectType;
@@ -57,7 +60,7 @@ public class ObjectReference implements NameContainer {
     } else {
       JsonString s = (JsonString) v;
       objectString = new ArkName(s.getString());
-      objectType = TYPE_PATH;
+      objectType = o.getBoolean("short", false) ? TYPE_PATH_NO_TYPE : TYPE_PATH;
     }
   }
 
@@ -114,6 +117,9 @@ public class ObjectReference implements NameContainer {
       job.add("value", objectId);
     } else if (objectType == TYPE_PATH) {
       job.add("value", objectString.toString());
+    } else if (objectType == TYPE_PATH_NO_TYPE) {
+      job.add("value", objectString.toString());
+      job.add("short", true);
     }
 
     return job.build();
@@ -124,6 +130,8 @@ public class ObjectReference implements NameContainer {
       return length;
     } else if (objectType == TYPE_PATH) {
       return Integer.BYTES + ArkArchive.getNameLength(objectString, nameTable);
+    } else if (objectType == TYPE_PATH_NO_TYPE) {
+      return ArkArchive.getNameLength(objectString, nameTable);
     } else {
       return length;
     }
@@ -137,8 +145,10 @@ public class ObjectReference implements NameContainer {
       } else if (objectType == TYPE_PATH) {
         objectString = archive.getName();
       } else {
-        System.err.println("Warning: ObjectReference with unkown type " + objectType + " at " + Integer.toHexString(archive.position()));
-        archive.position(archive.position() + length - 4);
+        System.err.println("Warning: ObjectReference with possibly unknown type " + objectType + " at " + Integer.toHexString(archive.position()));
+        archive.position(archive.position() - 4);
+        objectType = TYPE_PATH_NO_TYPE;
+        objectString = archive.getName();
       }
     } else if (length == 4) { // Only seems to happen in Version 5
       objectType = TYPE_ID;
@@ -150,13 +160,13 @@ public class ObjectReference implements NameContainer {
   }
 
   public void write(ArkArchive archive) {
-    if (objectType != TYPE_ID || length >= 8) {
+    if (objectType == TYPE_PATH || length >= 8 && objectType != TYPE_PATH_NO_TYPE) {
       archive.putInt(objectType);
     }
 
     if (objectType == TYPE_ID) {
       archive.putInt(objectId);
-    } else if (objectType == TYPE_PATH) {
+    } else if (objectType == TYPE_PATH || objectType == TYPE_PATH_NO_TYPE) {
       archive.putName(objectString);
     }
   }
