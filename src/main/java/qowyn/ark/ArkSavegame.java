@@ -141,7 +141,15 @@ public class ArkSavegame implements GameObjectContainer {
 
     int unknownValue = archive.getInt();
     if (unknownValue != 0) {
-      throw new UnsupportedOperationException("Found unexpected Value " + unknownValue + " at " + (archive.position() - 4));
+      if (unknownValue > 1) {
+        throw new UnsupportedOperationException("Found unexpected Value " + unknownValue + " at " + (archive.position() - 4));
+      }
+
+      for (int n = 0; n < unknownValue; n++) {
+        int unknownFlags = archive.getInt();
+        int objectCount = archive.getInt();
+        String name = archive.getString();
+      }
     }
 
     readBinaryObjects(archive, options);
