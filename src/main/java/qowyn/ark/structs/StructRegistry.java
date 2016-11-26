@@ -30,7 +30,9 @@ public class StructRegistry {
     addStruct("PrimalPersistentCharacterStatsStruct", StructPropertyList::new, StructPropertyList::new);
     addStruct("TribeData", StructPropertyList::new, StructPropertyList::new);
     addStruct("TribeGovernment", StructPropertyList::new, StructPropertyList::new);
+    addStruct("TerrainInfo", StructPropertyList::new, StructPropertyList::new);
     addStruct("Vector", StructVector::new, StructVector::new);
+    addStruct("Vector2D", StructVector2D::new, StructVector2D::new);
     addStruct("Quat", StructQuat::new, StructQuat::new);
     addStruct("Color", StructColor::new, StructColor::new);
     addStruct("LinearColor", StructLinearColor::new, StructLinearColor::new);
