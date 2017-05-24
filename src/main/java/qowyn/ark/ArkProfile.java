@@ -73,7 +73,7 @@ public class ArkProfile implements PropertyContainer, GameObjectContainer {
 
     for (int i = 0; i < profilesCount; i++) {
       GameObject object = objects.get(i);
-      if (object.getClassString().equals("PrimalPlayerData")) {
+      if (object.getClassString().equals("PrimalPlayerData") || object.getClassString().equals("PrimalPlayerDataBP_C")) {
         profile = object;
       }
       object.loadProperties(archive, i < profilesCount - 1 ? objects.get(i + 1) : null, 0);
