@@ -7,7 +7,6 @@ import javax.json.JsonValue;
 
 import qowyn.ark.ArkArchive;
 import qowyn.ark.JsonHelper;
-import qowyn.ark.types.ArkName;
 
 public class StructVector extends StructBase {
 
@@ -17,28 +16,21 @@ public class StructVector extends StructBase {
 
   private float z;
 
-  public StructVector(ArkName structType) {
-    super(structType);
-  }
+  public StructVector() {}
 
-  public StructVector(ArkName structType, float x, float y, float z) {
-    super(structType);
+  public StructVector(float x, float y, float z) {
     this.x = x;
     this.y = y;
     this.z = z;
   }
 
-  public StructVector(ArkArchive archive, ArkName structType) {
-    super(structType);
-
+  public StructVector(ArkArchive archive) {
     x = archive.getFloat();
     y = archive.getFloat();
     z = archive.getFloat();
   }
 
-  public StructVector(JsonValue v, ArkName structType) {
-    super(structType);
-
+  public StructVector(JsonValue v) {
     JsonObject o = (JsonObject) v;
 
     x = JsonHelper.getFloat(o, "x");

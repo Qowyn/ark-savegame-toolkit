@@ -32,6 +32,8 @@ public class ExtraDataFoliageHandler implements ExtraDataHandler {
     int shouldBeZero = archive.getInt();
     if (shouldBeZero != 0) {
       System.err.println("Expected int after properties to be 0 but found " + shouldBeZero + " at " + Integer.toHexString(archive.position() - 4));
+      archive.unknownData();
+      archive.unknownNames();
     }
 
     int structMapCount = archive.getInt();
@@ -45,11 +47,13 @@ public class ExtraDataFoliageHandler implements ExtraDataHandler {
 
         for (int structIndex = 0; structIndex < structCount; structIndex++) {
           String structName = archive.getString();
-          StructPropertyList properties = new StructPropertyList(archive, null);
+          StructPropertyList properties = new StructPropertyList(archive);
 
           int shouldBeZero2 = archive.getInt();
           if (shouldBeZero2 != 0) {
             System.err.println("Expected int after properties to be 0 but found " + shouldBeZero2 + " at " + Integer.toHexString(archive.position() - 4));
+            archive.unknownData();
+            archive.unknownNames();
           }
 
           structMap.put(structName, properties);
@@ -58,6 +62,7 @@ public class ExtraDataFoliageHandler implements ExtraDataHandler {
         structMapList.add(structMap);
       }
     } catch (UnreadablePropertyException upe) {
+      upe.printStackTrace();
       // Just stop reading and attach collected structs
     }
 
@@ -78,7 +83,7 @@ public class ExtraDataFoliageHandler implements ExtraDataHandler {
       Map<String, StructPropertyList> structMap = new HashMap<>();
 
       for (Map.Entry<String, JsonValue> structs : structMapJson.entrySet()) {
-        structMap.put(structs.getKey(), new StructPropertyList(structs.getValue(), null));
+        structMap.put(structs.getKey(), new StructPropertyList(structs.getValue()));
       }
 
       structMapList.add(structMap);

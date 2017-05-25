@@ -25,21 +25,12 @@ public class PropertyName extends PropertyBase<ArkName> {
 
   public PropertyName(JsonObject o) {
     super(o);
-    value = new ArkName(o.getString("value"));
+    value = ArkName.from(o.getString("value"));
   }
 
   @Override
   public Class<ArkName> getValueClass() {
     return ArkName.class;
-  }
-
-  public ArkName getValue() {
-    return value;
-  }
-
-  @Override
-  public void setValue(ArkName value) {
-    this.value = value;
   }
 
   @Override
@@ -60,7 +51,7 @@ public class PropertyName extends PropertyBase<ArkName> {
   @Override
   public void collectNames(Set<String> nameTable) {
     super.collectNames(nameTable);
-    nameTable.add(value.getNameString());
+    nameTable.add(value.getName());
   }
 
 }

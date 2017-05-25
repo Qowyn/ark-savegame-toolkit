@@ -28,7 +28,7 @@ public class PropertyByte extends PropertyBase<ArkByteValue> {
 
   public PropertyByte(JsonObject o) {
     super(o);
-    ArkName enumName = new ArkName(o.getString("enum", ArkByteValue.NONE));
+    ArkName enumName = ArkName.from(o.getString("enum", ArkName.NAME_NONE.toString()));
     value = new ArkByteValue(o, enumName);
   }
 
@@ -38,18 +38,8 @@ public class PropertyByte extends PropertyBase<ArkByteValue> {
   }
 
   @Override
-  public ArkByteValue getValue() {
-    return value;
-  }
-
-  @Override
-  public void setValue(ArkByteValue value) {
-    this.value = value;
-  }
-
-  @Override
   protected void serializeValue(JsonObjectBuilder job) {
-    JsonHelper.addString(job, "enum", value.getEnumName().toString(), ArkByteValue.NONE);
+    JsonHelper.addString(job, "enum", value.getEnumName().toString(), ArkName.NAME_NONE.toString());
     job.add("value", value.toJson());
   }
 

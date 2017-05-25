@@ -9,17 +9,15 @@ import javax.json.JsonArrayBuilder;
 import javax.json.JsonValue;
 
 import qowyn.ark.ArkArchive;
+import qowyn.ark.types.ArkName;
 
 public class ArkArrayBool extends ArrayList<Boolean> implements ArkArray<Boolean> {
 
-  /**
-   * 
-   */
   private static final long serialVersionUID = 1L;
 
   public ArkArrayBool() {}
 
-  public ArkArrayBool(ArkArchive archive, int dataSize) {
+  public ArkArrayBool(ArkArchive archive, int dataSize, ArkName propertyName) {
     int size = archive.getInt();
 
     for (int n = 0; n < size; n++) {
@@ -27,7 +25,8 @@ public class ArkArrayBool extends ArrayList<Boolean> implements ArkArray<Boolean
     }
   }
 
-  public ArkArrayBool(JsonArray a, int dataSize) {
+  public ArkArrayBool(JsonValue v, int dataSize, ArkName propertyName) {
+    JsonArray a = (JsonArray) v;
     a.forEach(n -> this.add(n != JsonValue.FALSE));
   }
 

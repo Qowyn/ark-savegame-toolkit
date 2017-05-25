@@ -8,35 +8,54 @@ import javax.json.JsonObjectBuilder;
 import qowyn.ark.ArkArchive;
 import qowyn.ark.structs.Struct;
 import qowyn.ark.structs.StructRegistry;
+import qowyn.ark.structs.StructUnknown;
 import qowyn.ark.types.ArkName;
 
 public class PropertyStruct extends PropertyBase<Struct> {
 
-  public PropertyStruct(String name, String typeName, Struct value) {
+  private ArkName structType;
+
+  public PropertyStruct(String name, String typeName, Struct value, ArkName structType) {
     super(name, typeName, 0, value);
+    this.structType = structType;
   }
 
-  public PropertyStruct(String name, String typeName, int index, Struct value) {
+  public PropertyStruct(String name, String typeName, int index, Struct value, ArkName structType) {
     super(name, typeName, index, value);
+    this.structType = structType;
   }
 
   public PropertyStruct(ArkArchive archive, PropertyArgs args) {
     super(archive, args);
-    ArkName structType = archive.getName();
+    structType = archive.getName();
 
     int position = archive.position();
     try {
       value = StructRegistry.read(archive, structType);
+      
+      if (value == null) {
+        throw new UnreadablePropertyException("StructRegistry returned null");
+      }
     } catch (UnreadablePropertyException upe) {
-      // skip struct
-      archive.position(position + dataSize);
+      archive.position(position);
+
+      value = new StructUnknown(archive, dataSize);
+
+      archive.unknownNames();
+      System.err.println("Reading StructProperty of type " + structType + " with name " + name + " as byte blob because:");
+      upe.printStackTrace();
     }
   }
 
   public PropertyStruct(JsonObject o) {
     super(o);
-    ArkName structType = new ArkName(o.getString("structType"));
-    value = StructRegistry.read(o.get("value"), structType);
+    structType = ArkName.from(o.getString("structType"));
+
+    if (o.containsKey("unknown")) {
+      value = new StructUnknown(o.get("unknown"));
+    } else {
+      value = StructRegistry.read(o.get("value"), structType);
+    }
   }
 
   @Override
@@ -45,30 +64,24 @@ public class PropertyStruct extends PropertyBase<Struct> {
   }
 
   @Override
-  public Struct getValue() {
-    return value;
-  }
-
-  @Override
-  public void setValue(Struct value) {
-    this.value = value;
-  }
-
-  @Override
   protected void serializeValue(JsonObjectBuilder job) {
-    job.add("structType", value.getStructType().toString());
-    job.add("value", value.toJson());
+    job.add("structType", structType.toString());
+    if (value instanceof StructUnknown) {
+      job.add("unknown", value.toJson());
+    } else {
+      job.add("value", value.toJson());
+    }
   }
 
   @Override
   protected void writeValue(ArkArchive archive) {
-    archive.putName(value.getStructType());
+    archive.putName(structType);
     value.write(archive);
   }
 
   @Override
   protected int calculateAdditionalSize(boolean nameTable) {
-    return ArkArchive.getNameLength(value.getStructType(), nameTable);
+    return ArkArchive.getNameLength(structType, nameTable);
   }
 
   @Override
@@ -79,6 +92,7 @@ public class PropertyStruct extends PropertyBase<Struct> {
   @Override
   public void collectNames(Set<String> nameTable) {
     super.collectNames(nameTable);
+    nameTable.add(structType.getName());
     value.collectNames(nameTable);
   }
 

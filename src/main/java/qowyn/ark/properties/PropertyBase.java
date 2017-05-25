@@ -23,8 +23,8 @@ public abstract class PropertyBase<T> implements Property<T> {
   protected T value;
 
   public PropertyBase(String name, String typeName, int index, T value) {
-    this.name = new ArkName(name);
-    this.typeName = new ArkName(typeName);
+    this.name = ArkName.from(name);
+    this.typeName = ArkName.from(typeName);
     this.index = index;
     this.value = value;
   }
@@ -37,8 +37,8 @@ public abstract class PropertyBase<T> implements Property<T> {
   }
 
   public PropertyBase(JsonObject o) {
-    name = new ArkName(o.getString("name"));
-    typeName = new ArkName(o.getString("type"));
+    name = ArkName.from(o.getString("name"));
+    typeName = ArkName.from(o.getString("type"));
     dataSize = o.getInt("size", 0);
     index = o.getInt("index", 0);
   }
@@ -60,7 +60,7 @@ public abstract class PropertyBase<T> implements Property<T> {
 
   @Override
   public void setNameString(String nameString) {
-    name = new ArkName(nameString);
+    name = ArkName.from(nameString);
   }
 
   @Override
@@ -80,7 +80,7 @@ public abstract class PropertyBase<T> implements Property<T> {
 
   @Override
   public void setTypeString(String typeString) {
-    this.typeName = new ArkName(typeString);
+    this.typeName = ArkName.from(typeString);
   }
 
   @Override
@@ -166,8 +166,18 @@ public abstract class PropertyBase<T> implements Property<T> {
   }
 
   public void collectNames(Set<String> nameTable) {
-    nameTable.add(name.getNameString());
-    nameTable.add(typeName.getNameString());
+    nameTable.add(name.getName());
+    nameTable.add(typeName.getName());
+  }
+
+  @Override
+  public T getValue() {
+    return value;
+  }
+  
+  @Override
+  public void setValue(T value) {
+    this.value = value;
   }
 
 }

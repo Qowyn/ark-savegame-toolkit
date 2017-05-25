@@ -21,17 +21,13 @@ public class StructPropertyList extends StructBase implements PropertyContainer 
 
   private List<Property<?>> properties;
 
-  public StructPropertyList(ArkName structType) {
-    super(structType);
-  }
+  public StructPropertyList() {}
 
-  public StructPropertyList(ArkName structType, List<Property<?>> properties) {
-    super(structType);
+  public StructPropertyList(List<Property<?>> properties) {
     this.properties = properties;
   }
 
-  public StructPropertyList(ArkArchive archive, ArkName structType) {
-    super(structType);
+  public StructPropertyList(ArkArchive archive) {
     properties = new ArrayList<>();
     Property<?> property = PropertyRegistry.readProperty(archive);
 
@@ -41,9 +37,7 @@ public class StructPropertyList extends StructBase implements PropertyContainer 
     }
   }
 
-  public StructPropertyList(JsonValue v, ArkName structType) {
-    super(structType);
-
+  public StructPropertyList(JsonValue v) {
     JsonArray a = (JsonArray) v;
 
     List<JsonObject> props = a.getValuesAs(JsonObject.class);
@@ -77,12 +71,12 @@ public class StructPropertyList extends StructBase implements PropertyContainer 
   public void write(ArkArchive archive) {
     properties.forEach(p -> p.write(archive));
 
-    archive.putName(Property.NONE_NAME);
+    archive.putName(ArkName.NAME_NONE);
   }
 
   @Override
   public int getSize(boolean nameTable) {
-    int size = ArkArchive.getNameLength(Property.NONE_NAME, nameTable);
+    int size = ArkArchive.getNameLength(ArkName.NAME_NONE, nameTable);
 
     size += properties.stream().mapToInt(p -> p.calculateSize(nameTable)).sum();
 
@@ -91,8 +85,6 @@ public class StructPropertyList extends StructBase implements PropertyContainer 
 
   @Override
   public void collectNames(Set<String> nameTable) {
-    super.collectNames(nameTable);
-
     properties.forEach(p -> p.collectNames(nameTable));
   }
 

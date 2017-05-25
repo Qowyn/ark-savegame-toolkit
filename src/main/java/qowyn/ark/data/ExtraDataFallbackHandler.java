@@ -28,6 +28,7 @@ public class ExtraDataFallbackHandler implements ExtraDataHandler {
     ExtraDataBlob extraData = new ExtraDataBlob();
 
     extraData.setData(archive.getBytes(length));
+    archive.unknownData();
 
     return extraData;
   }

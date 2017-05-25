@@ -31,16 +31,6 @@ public class PropertyInt64 extends PropertyBase<Long> {
   }
 
   @Override
-  public Long getValue() {
-    return value;
-  }
-
-  @Override
-  public void setValue(Long value) {
-    this.value = value;
-  }
-
-  @Override
   protected void serializeValue(JsonObjectBuilder job) {
     job.add("value", value);
   }

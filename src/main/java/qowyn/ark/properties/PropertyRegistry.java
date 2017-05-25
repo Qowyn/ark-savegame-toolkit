@@ -17,8 +17,8 @@ public class PropertyRegistry {
   public static final Map<ArkName, Function<JsonObject, Property<?>>> TYPE_JSON_MAP = new HashMap<>();
 
   public static void addProperty(String name, BiFunction<ArkArchive, PropertyArgs, Property<?>> binary, Function<JsonObject, Property<?>> json) {
-    TYPE_MAP.put(new ArkName(name), binary);
-    TYPE_JSON_MAP.put(new ArkName(name), json);
+    TYPE_MAP.put(ArkName.from(name), binary);
+    TYPE_JSON_MAP.put(ArkName.from(name), json);
   }
 
   static {
@@ -43,31 +43,31 @@ public class PropertyRegistry {
   public static Property<?> readProperty(ArkArchive archive) {
     ArkName name = archive.getName();
 
-    if (name == null || name.equals(Property.EMPTY_NAME)) {
-      System.err.println("Warning: Property name is " + (name == null ? "null" : "empty") + ". Ignoring remaining properties.");
-      throw new UnreadablePropertyException();
+    if (name == null || name.toString().isEmpty()) {
+      archive.unknownData();
+      throw new UnreadablePropertyException("Property name is " + (name == null ? "null" : "empty") + ", indicating a corrupt file. Ignoring remaining properties.");
     }
 
-    if (name.equals(Property.NONE_NAME)) {
+    if (name == ArkName.NAME_NONE) {
       return null;
     }
 
     ArkName type = archive.getName();
 
-    if (!TYPE_MAP.containsKey(type)) {
-      System.err.println("Warning: Unknown property type " + type + " near " + Integer.toHexString(archive.position()) + ". Ignoring remaining properties.");
-      throw new UnreadablePropertyException();
-    }
-
     PropertyArgs args = new PropertyArgs(name, type);
 
-    return TYPE_MAP.get(type).apply(archive, args);
+    if (!TYPE_MAP.containsKey(type)) {
+      System.err.println("Warning: Unknown property type " + type + " near " + Integer.toHexString(archive.position()) + ".");
+      archive.unknownNames();
+    }
+
+    return TYPE_MAP.getOrDefault(type, PropertyUnknown::new).apply(archive, args);
   }
 
   public static Property<?> fromJSON(JsonObject o) {
-    ArkName type = new ArkName(o.getString("type"));
+    ArkName type = ArkName.from(o.getString("type"));
 
-    return TYPE_JSON_MAP.get(type).apply(o);
+    return TYPE_JSON_MAP.getOrDefault(type, PropertyUnknown::new).apply(o);
   }
 
 }

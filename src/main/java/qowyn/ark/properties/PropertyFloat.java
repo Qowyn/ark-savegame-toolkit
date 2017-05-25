@@ -42,16 +42,6 @@ public class PropertyFloat extends PropertyBase<Float> {
   }
 
   @Override
-  public Float getValue() {
-    return value;
-  }
-
-  @Override
-  public void setValue(Float value) {
-    this.value = value;
-  }
-
-  @Override
   protected void serializeValue(JsonObjectBuilder job) {
     if (Float.isFinite(value)) {
       job.add("value", value);

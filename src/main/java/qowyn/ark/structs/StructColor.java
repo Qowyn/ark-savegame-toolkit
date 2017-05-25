@@ -7,7 +7,6 @@ import javax.json.JsonValue;
 
 import qowyn.ark.ArkArchive;
 import qowyn.ark.JsonHelper;
-import qowyn.ark.types.ArkName;
 
 /**
  * Essentially FColor
@@ -15,39 +14,32 @@ import qowyn.ark.types.ArkName;
  *
  */
 public class StructColor extends StructBase {
-  
+
   private byte b;
-  
+
   private byte g;
-  
+
   private byte r;
-  
+
   private byte a;
-  
-  public StructColor(ArkName structType) {
-    super(structType);
-  }
-  
-  public StructColor(ArkName structType, byte b, byte g, byte r, byte a) {
-    super(structType);
+
+  public StructColor() {}
+
+  public StructColor(byte b, byte g, byte r, byte a) {
     this.b = b;
     this.g = g;
     this.r = r;
     this.a = a;
   }
 
-  public StructColor(ArkArchive archive, ArkName structType) {
-    super(structType);
-
+  public StructColor(ArkArchive archive) {
     b = archive.getByte();
     g = archive.getByte();
     r = archive.getByte();
     a = archive.getByte();
   }
 
-  public StructColor(JsonValue v, ArkName structType) {
-    super(structType);
-
+  public StructColor(JsonValue v) {
     JsonObject o = (JsonObject) v;
 
     b = (byte) o.getInt("b", 0);

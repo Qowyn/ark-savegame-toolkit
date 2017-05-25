@@ -7,20 +7,18 @@ import javax.json.Json;
 import javax.json.JsonArray;
 import javax.json.JsonArrayBuilder;
 import javax.json.JsonString;
+import javax.json.JsonValue;
 
 import qowyn.ark.ArkArchive;
 import qowyn.ark.types.ArkName;
 
 public class ArkArrayName extends ArrayList<ArkName> implements ArkArray<ArkName> {
 
-  /**
-   * 
-   */
   private static final long serialVersionUID = 1L;
 
   public ArkArrayName() {}
 
-  public ArkArrayName(ArkArchive archive, int dataSize) {
+  public ArkArrayName(ArkArchive archive, int dataSize, ArkName propertyName) {
     int size = archive.getInt();
 
     for (int n = 0; n < size; n++) {
@@ -28,8 +26,9 @@ public class ArkArrayName extends ArrayList<ArkName> implements ArkArray<ArkName
     }
   }
 
-  public ArkArrayName(JsonArray a, int dataSize) {
-    a.getValuesAs(JsonString.class).forEach(s -> this.add(new ArkName(s.getString())));
+  public ArkArrayName(JsonValue v, int dataSize, ArkName propertyName) {
+    JsonArray a = (JsonArray) v;
+    a.getValuesAs(JsonString.class).forEach(s -> this.add(ArkName.from(s.getString())));
   }
 
   @Override
@@ -64,7 +63,7 @@ public class ArkArrayName extends ArrayList<ArkName> implements ArkArray<ArkName
 
   @Override
   public void collectNames(Set<String> nameTable) {
-    forEach(n -> nameTable.add(n.getNameString()));
+    forEach(n -> nameTable.add(n.getName()));
   }
 
 }

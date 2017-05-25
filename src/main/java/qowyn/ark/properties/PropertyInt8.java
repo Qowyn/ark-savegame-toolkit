@@ -31,16 +31,6 @@ public class PropertyInt8 extends PropertyBase<Byte> {
   }
 
   @Override
-  public Byte getValue() {
-    return value;
-  }
-
-  @Override
-  public void setValue(Byte value) {
-    this.value = value;
-  }
-
-  @Override
   protected void serializeValue(JsonObjectBuilder job) {
     job.add("value", value);
   }

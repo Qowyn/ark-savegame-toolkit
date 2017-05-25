@@ -59,7 +59,7 @@ public class ObjectReference implements NameContainer {
       objectType = TYPE_ID;
     } else {
       JsonString s = (JsonString) v;
-      objectString = new ArkName(s.getString());
+      objectString = ArkName.from(s.getString());
       objectType = o.getBoolean("short", false) ? TYPE_PATH_NO_TYPE : TYPE_PATH;
     }
   }
@@ -174,7 +174,7 @@ public class ObjectReference implements NameContainer {
   @Override
   public void collectNames(Set<String> nameTable) {
     if (objectType == TYPE_PATH) {
-      nameTable.add(objectString.getNameString());
+      nameTable.add(objectString.getName());
     }
   }
 

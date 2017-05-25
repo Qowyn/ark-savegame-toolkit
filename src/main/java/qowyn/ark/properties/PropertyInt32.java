@@ -31,16 +31,6 @@ public class PropertyInt32 extends PropertyBase<Integer> {
   }
 
   @Override
-  public Integer getValue() {
-    return value;
-  }
-
-  @Override
-  public void setValue(Integer value) {
-    this.value = value;
-  }
-
-  @Override
   protected void serializeValue(JsonObjectBuilder job) {
     job.add("value", value);
   }

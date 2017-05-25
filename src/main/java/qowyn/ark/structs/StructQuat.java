@@ -7,7 +7,6 @@ import javax.json.JsonValue;
 
 import qowyn.ark.ArkArchive;
 import qowyn.ark.JsonHelper;
-import qowyn.ark.types.ArkName;
 
 public class StructQuat extends StructBase {
 
@@ -19,30 +18,23 @@ public class StructQuat extends StructBase {
 
   private float w;
 
-  public StructQuat(ArkName structType) {
-    super(structType);
-  }
+  public StructQuat() {}
 
-  public StructQuat(ArkName structType, float x, float y, float z, float w) {
-    super(structType);
+  public StructQuat(float x, float y, float z, float w) {
     this.x = x;
     this.y = y;
     this.z = z;
     this.w = w;
   }
 
-  public StructQuat(ArkArchive archive, ArkName structType) {
-    super(structType);
-
+  public StructQuat(ArkArchive archive) {
     x = archive.getFloat();
     y = archive.getFloat();
     z = archive.getFloat();
     w = archive.getFloat();
   }
 
-  public StructQuat(JsonValue v, ArkName structType) {
-    super(structType);
-
+  public StructQuat(JsonValue v) {
     JsonObject o = (JsonObject) v;
 
     x = JsonHelper.getFloat(o, "x");

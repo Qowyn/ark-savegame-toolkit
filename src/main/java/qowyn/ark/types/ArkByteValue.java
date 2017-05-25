@@ -11,10 +11,6 @@ import qowyn.ark.NameContainer;
 
 public class ArkByteValue implements NameContainer {
 
-  public static final String NONE = "None";
-
-  public static final ArkName NONE_NAME = new ArkName(NONE);
-
   private boolean fromEnum;
 
   private byte byteValue;
@@ -27,7 +23,7 @@ public class ArkByteValue implements NameContainer {
 
   public ArkByteValue(byte byteValue) {
     this.fromEnum = false;
-    this.enumName = NONE_NAME;
+    this.enumName = ArkName.NAME_NONE;
     this.byteValue = byteValue;
   }
 
@@ -55,7 +51,7 @@ public class ArkByteValue implements NameContainer {
 
   public void setByteValue(byte byteValue) {
     this.fromEnum = false;
-    this.enumName = NONE_NAME;
+    this.enumName = ArkName.NAME_NONE;
     this.byteValue = byteValue;
   }
 
@@ -75,10 +71,10 @@ public class ArkByteValue implements NameContainer {
 
   public void fromJson(JsonObject o, ArkName enumName) {
     this.enumName = enumName;
-    this.fromEnum = !enumName.equals(NONE_NAME);
+    this.fromEnum = enumName != ArkName.NAME_NONE;
     JsonObject value = o.getJsonObject("value");
     if (fromEnum) {
-      this.nameValue = new ArkName(value.getString("value"));
+      this.nameValue = ArkName.from(value.getString("value"));
     } else {
       this.byteValue = (byte) value.getInt("value");
     }
@@ -102,7 +98,7 @@ public class ArkByteValue implements NameContainer {
 
   public void read(ArkArchive archive, ArkName enumName) {
     this.enumName = enumName;
-    this.fromEnum = !enumName.equals(NONE_NAME);
+    this.fromEnum = enumName != ArkName.NAME_NONE;
     if (fromEnum) {
       this.nameValue = archive.getName();
     } else {
@@ -120,9 +116,9 @@ public class ArkByteValue implements NameContainer {
 
   @Override
   public void collectNames(Set<String> nameTable) {
-    nameTable.add(enumName.getNameString());
+    nameTable.add(enumName.getName());
     if (fromEnum) {
-      nameTable.add(nameValue.getNameString());
+      nameTable.add(nameValue.getName());
     }
   }
 

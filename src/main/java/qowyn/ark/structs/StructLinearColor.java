@@ -7,7 +7,6 @@ import javax.json.JsonValue;
 
 import qowyn.ark.ArkArchive;
 import qowyn.ark.JsonHelper;
-import qowyn.ark.types.ArkName;
 
 public class StructLinearColor extends StructBase {
 
@@ -19,30 +18,23 @@ public class StructLinearColor extends StructBase {
 
   private float a;
 
-  public StructLinearColor(ArkName structType) {
-    super(structType);
-  }
+  public StructLinearColor() {}
 
-  public StructLinearColor(ArkName structType, float r, float g, float b, float a) {
-    super(structType);
+  public StructLinearColor(float r, float g, float b, float a) {
     this.r = r;
     this.g = g;
     this.b = b;
     this.a = a;
   }
 
-  public StructLinearColor(ArkArchive archive, ArkName structType) {
-    super(structType);
-
+  public StructLinearColor(ArkArchive archive) {
     r = archive.getFloat();
     g = archive.getFloat();
     b = archive.getFloat();
     a = archive.getFloat();
   }
 
-  public StructLinearColor(JsonValue v, ArkName structType) {
-    super(structType);
-
+  public StructLinearColor(JsonValue v) {
     JsonObject o = (JsonObject) v;
 
     r = JsonHelper.getFloat(o, "r");

@@ -7,9 +7,11 @@ import javax.json.Json;
 import javax.json.JsonArray;
 import javax.json.JsonArrayBuilder;
 import javax.json.JsonNumber;
+import javax.json.JsonValue;
 
 import qowyn.ark.ArkArchive;
 import qowyn.ark.properties.UnreadablePropertyException;
+import qowyn.ark.types.ArkName;
 
 /**
  *
@@ -18,18 +20,15 @@ import qowyn.ark.properties.UnreadablePropertyException;
  */
 public class ArkArrayByte extends ArrayList<Byte> implements ArkArray<Byte> {
 
-  /**
-   * 
-   */
   private static final long serialVersionUID = 1L;
 
   public ArkArrayByte() {}
 
-  public ArkArrayByte(ArkArchive archive, int dataSize) {
+  public ArkArrayByte(ArkArchive archive, int dataSize, ArkName propertyName) {
     int size = archive.getInt();
     
     if (size + 4 != dataSize) {
-      throw new UnreadablePropertyException();
+      throw new UnreadablePropertyException("Found Array of ByteProperty with unexpected size.");
     }
 
     for (int n = 0; n < size; n++) {
@@ -37,7 +36,8 @@ public class ArkArrayByte extends ArrayList<Byte> implements ArkArray<Byte> {
     }
   }
 
-  public ArkArrayByte(JsonArray a, int dataSize) {
+  public ArkArrayByte(JsonValue v, int dataSize, ArkName propertyName) {
+    JsonArray a = (JsonArray) v;
     a.getValuesAs(JsonNumber.class).forEach(n -> this.add((byte) n.intValue()));
   }
 

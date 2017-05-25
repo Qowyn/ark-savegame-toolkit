@@ -19,6 +19,7 @@ import javax.json.JsonObjectBuilder;
 import qowyn.ark.properties.Property;
 import qowyn.ark.properties.PropertyRegistry;
 import qowyn.ark.properties.UnreadablePropertyException;
+import qowyn.ark.types.ArkName;
 
 public class ArkSavFile implements PropertyContainer {
   
@@ -71,6 +72,7 @@ public class ArkSavFile implements PropertyContainer {
         property = PropertyRegistry.readProperty(archive);
       }
     } catch (UnreadablePropertyException upe) {
+      upe.printStackTrace();
       return;
     }
     
@@ -84,7 +86,7 @@ public class ArkSavFile implements PropertyContainer {
   public void writeBinary(String fileName, WritingOptions options) throws FileNotFoundException, IOException {
     int size = Integer.BYTES + ArkArchive.getStringLength(className);
     
-    size += ArkArchive.getNameLength(Property.NONE_NAME, false);
+    size += ArkArchive.getNameLength(ArkName.NAME_NONE, false);
 
     size += properties.stream().mapToInt(p -> p.calculateSize(false)).sum();
 
@@ -105,7 +107,7 @@ public class ArkSavFile implements PropertyContainer {
         properties.forEach(p -> p.write(archive));
       }
 
-      archive.putName(Property.NONE_NAME);
+      archive.putName(ArkName.NAME_NONE);
       archive.putInt(0);
 
       if (!options.usesMemoryMapping()) {

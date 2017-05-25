@@ -31,16 +31,6 @@ public class PropertyInt16 extends PropertyBase<Short> {
   }
 
   @Override
-  public Short getValue() {
-    return value;
-  }
-
-  @Override
-  public void setValue(Short value) {
-    this.value = value;
-  }
-
-  @Override
   protected void serializeValue(JsonObjectBuilder job) {
     job.add("value", value);
   }

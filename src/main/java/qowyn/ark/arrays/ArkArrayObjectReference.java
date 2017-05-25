@@ -7,20 +7,19 @@ import javax.json.Json;
 import javax.json.JsonArray;
 import javax.json.JsonArrayBuilder;
 import javax.json.JsonObject;
+import javax.json.JsonValue;
 
 import qowyn.ark.ArkArchive;
+import qowyn.ark.types.ArkName;
 import qowyn.ark.types.ObjectReference;
 
 public class ArkArrayObjectReference extends ArrayList<ObjectReference> implements ArkArray<ObjectReference> {
 
-  /**
-   * 
-   */
   private static final long serialVersionUID = 1L;
 
   public ArkArrayObjectReference() {}
 
-  public ArkArrayObjectReference(ArkArchive archive, int dataSize) {
+  public ArkArrayObjectReference(ArkArchive archive, int dataSize, ArkName propertyName) {
     int size = archive.getInt();
 
     for (int n = 0; n < size; n++) {
@@ -28,7 +27,8 @@ public class ArkArrayObjectReference extends ArrayList<ObjectReference> implemen
     }
   }
 
-  public ArkArrayObjectReference(JsonArray a, int dataSize) {
+  public ArkArrayObjectReference(JsonValue v, int dataSize, ArkName propertyName) {
+    JsonArray a = (JsonArray) v;
     a.getValuesAs(JsonObject.class).forEach(o -> this.add(new ObjectReference(o, 8)));
   }
 

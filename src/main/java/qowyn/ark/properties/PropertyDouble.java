@@ -42,16 +42,6 @@ public class PropertyDouble extends PropertyBase<Double> {
   }
 
   @Override
-  public Double getValue() {
-    return value;
-  }
-
-  @Override
-  public void setValue(Double value) {
-    this.value = value;
-  }
-
-  @Override
   protected void serializeValue(JsonObjectBuilder job) {
     if (Double.isFinite(value)) {
       job.add("value", value);

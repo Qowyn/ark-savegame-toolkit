@@ -141,14 +141,11 @@ public class ArkSavegame implements GameObjectContainer {
 
     int unknownValue = archive.getInt();
     if (unknownValue != 0) {
-      if (unknownValue > 1) {
-        throw new UnsupportedOperationException("Found unexpected Value " + unknownValue + " at " + (archive.position() - 4));
-      }
-
+      archive.unknownData();
       for (int n = 0; n < unknownValue; n++) {
-        int unknownFlags = archive.getInt();
-        int objectCount = archive.getInt();
-        String name = archive.getString();
+        // skip int int string
+        archive.skipBytes(8);
+        archive.skipString();
       }
     }
 
@@ -198,6 +195,7 @@ public class ArkSavegame implements GameObjectContainer {
         dataFiles.add(archive.getString());
       }
     } else {
+      archive.unknownData();
       for (int n = 0; n < count; n++) {
         archive.skipString();
       }
@@ -213,6 +211,7 @@ public class ArkSavegame implements GameObjectContainer {
         embeddedData.add(new EmbeddedData(archive));
       }
     } else {
+      archive.unknownData();
       for (int n = 0; n < count; n++) {
         EmbeddedData.skip(archive);
       }
@@ -229,6 +228,9 @@ public class ArkSavegame implements GameObjectContainer {
         gameObject.setId(n);
         objects.add(gameObject);
       }
+    } else {
+      archive.unknownData();
+      archive.unknownNames();
     }
   }
 
@@ -257,6 +259,14 @@ public class ArkSavegame implements GameObjectContainer {
 
         stream.forEach(n -> readBinaryObjectPropertiesImpl(n, archive));
       }
+
+      if (options.getObjectFilter() != null) {
+        archive.unknownData();
+        archive.unknownNames();
+      }
+    } else {
+      archive.unknownData();
+      archive.unknownNames();
     }
   }
 

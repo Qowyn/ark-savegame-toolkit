@@ -9,7 +9,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -23,6 +22,10 @@ public class ArkArchive {
 
   private Map<String, Integer> nameMap;
 
+  private boolean unknownData = false;
+
+  private boolean unknownNames = false;
+
   private static final Logger LOGGER = Logger.getLogger(ArkArchive.class.getName());
 
   private static final int BUFFER_LENGTH = 4096;
@@ -31,24 +34,14 @@ public class ArkArchive {
 
   private final byte[] smallByteBuffer = new byte[BUFFER_LENGTH];
 
-  // cache for ArkNames if using nameTable (.ark V6)
-  private final Map<StringInteger, ArkName> nameCache;
-
-  // cache for ArkNames if not using nameTable (.arkprofile, .arktribe, .ark V5)
-  private final Map<String, ArkName> nameCacheWithoutTable;
-
   public ArkArchive(ByteBuffer mbb) {
     this.mbb = mbb.order(ByteOrder.LITTLE_ENDIAN);
-    this.nameCache = new ConcurrentHashMap<>();
-    this.nameCacheWithoutTable = new ConcurrentHashMap<>();
   }
 
   public ArkArchive(ArkArchive toClone) {
     this.mbb = toClone.mbb.duplicate().order(ByteOrder.LITTLE_ENDIAN);
     this.nameTable = toClone.nameTable;
     this.nameMap = toClone.nameMap;
-    this.nameCache = toClone.nameCache;
-    this.nameCacheWithoutTable = new ConcurrentHashMap<>();
   }
 
   public List<String> getNameTable() {
@@ -60,10 +53,9 @@ public class ArkArchive {
       this.nameTable = Collections.unmodifiableList(new ArrayList<>(nameTable));
       Map<String, Integer> nameMapBuilder = new HashMap<>();
 
-      int index = 1;
+      int index = 0;
       for (String name : nameTable) {
-        nameMapBuilder.put(name, index);
-        index += 1;
+        nameMapBuilder.put(name, ++index);
       }
 
       this.nameMap = Collections.unmodifiableMap(nameMapBuilder);
@@ -85,11 +77,11 @@ public class ArkArchive {
       return null;
     }
 
-    String nameString = nameTable.get(id - 1);
-    int nameIndex = mbb.getInt();
+    String name = nameTable.get(id - 1);
+    int instance = mbb.getInt();
 
     // Get or create ArkName
-    return nameCache.computeIfAbsent(new StringInteger(nameString, nameIndex), si -> new ArkName(si.getString(), si.getInteger()));
+    return ArkName.from(name, instance);
   }
 
   public String getString() {
@@ -132,9 +124,7 @@ public class ArkArchive {
 
   public ArkName getName() {
     if (!hasNameTable()) {
-      String nameAsString = getString();
-      // get or create ArkName
-      return nameCacheWithoutTable.computeIfAbsent(nameAsString, ArkName::new);
+      return ArkName.from(getString());
     } else {
       return getNameFromTable();
     }
@@ -157,6 +147,10 @@ public class ArkArchive {
     }
 
     mbb.position(mbb.position() + readSize);
+  }
+
+  public void skipBytes(int count) {
+    mbb.position(mbb.position() + count);
   }
 
   public int getInt() {
@@ -222,14 +216,14 @@ public class ArkArchive {
    */
   protected void putNameIntoTable(ArkName name) {
     // index is 1 based
-    int index = nameMap.getOrDefault(name.getNameString(), 0);
+    int index = nameMap.getOrDefault(name.getName(), 0);
 
     if (index == 0) {
-      throw new UnsupportedOperationException("Uncollected Name: " + name.getNameString());
+      throw new UnsupportedOperationException("Uncollected Name: " + name.getName());
     }
 
     mbb.putInt(index);
-    mbb.putInt(name.getNameIndex());
+    mbb.putInt(name.getInstance());
   }
 
   /**
@@ -313,6 +307,41 @@ public class ArkArchive {
    */
   public void putBytes(byte[] value) {
     mbb.put(value);
+  }
+
+  /**
+   * Indicates that some data couldn't be read.
+   * 
+   * @return true if some data has been lost
+   */
+  public boolean hasUnknownData() {
+    return unknownData;
+  }
+
+  /**
+   * Set the unknownData flag to true
+   */
+  public void unknownData() {
+    this.unknownData = true;
+  }
+
+  /**
+   * Indicates that there might be unknown references to some names.
+   * If the current file has to be written back to disk this should 
+   * be considered by keeping all old names and adding new names to 
+   * the end of the list.
+   * 
+   * @return true if there are unknown names
+   */
+  public boolean hasUnknownNames() {
+    return unknownNames;
+  }
+
+  /**
+   * Set the unknownNames flag to true
+   */
+  public void unknownNames() {
+    this.unknownNames = true;
   }
 
   /**

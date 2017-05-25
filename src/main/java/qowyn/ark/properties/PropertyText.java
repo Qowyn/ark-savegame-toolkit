@@ -36,15 +36,6 @@ public class PropertyText extends PropertyBase<String> {
     return String.class;
   }
 
-  public String getValue() {
-    return value;
-  }
-
-  @Override
-  public void setValue(String value) {
-    this.value = value;
-  }
-
   @Override
   protected void serializeValue(JsonObjectBuilder job) {
     job.add("value", value);

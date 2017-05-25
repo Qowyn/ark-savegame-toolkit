@@ -31,16 +31,6 @@ public class PropertyBool extends PropertyBase<Boolean> {
   }
 
   @Override
-  public Boolean getValue() {
-    return value;
-  }
-
-  @Override
-  public void setValue(Boolean value) {
-    this.value = value;
-  }
-
-  @Override
   protected void serializeValue(JsonObjectBuilder job) {
     job.add("value", value);
   }

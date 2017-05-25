@@ -34,16 +34,6 @@ public class PropertyObject extends PropertyBase<ObjectReference> {
   }
 
   @Override
-  public ObjectReference getValue() {
-    return value;
-  }
-
-  @Override
-  public void setValue(ObjectReference value) {
-    this.value = value;
-  }
-
-  @Override
   protected void serializeValue(JsonObjectBuilder job) {
     job.add("value", value.toJSON());
   }
