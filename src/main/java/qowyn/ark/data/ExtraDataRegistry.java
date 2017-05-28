@@ -15,8 +15,9 @@ public class ExtraDataRegistry {
    */
   public static final List<ExtraDataHandler> EXTRA_DATA_HANDLERS = new ArrayList<>();
 
+  private static final ExtraDataFallbackHandler FALLBACK_HANDLER = new ExtraDataFallbackHandler();
+
   static {
-    EXTRA_DATA_HANDLERS.add(new ExtraDataFallbackHandler());
     EXTRA_DATA_HANDLERS.add(new ExtraDataZeroHandler());
     EXTRA_DATA_HANDLERS.add(new ExtraDataCharacterHandler());
     EXTRA_DATA_HANDLERS.add(new ExtraDataFoliageHandler());
@@ -32,14 +33,20 @@ public class ExtraDataRegistry {
    * @return
    */
   public static ExtraData getExtraData(GameObject object, ArkArchive archive, int length) {
-    for (int i = EXTRA_DATA_HANDLERS.size() - 1; i >= 0; i--) {
-      ExtraDataHandler handler = EXTRA_DATA_HANDLERS.get(i);
-      if (handler.canHandle(object, length)) {
-        return handler.read(object, archive, length);
+    int position = archive.position();
+    try {
+      for (int i = EXTRA_DATA_HANDLERS.size() - 1; i >= 0; i--) {
+        ExtraDataHandler handler = EXTRA_DATA_HANDLERS.get(i);
+        if (handler.canHandle(object, length)) {
+          return handler.read(object, archive, length);
+        }
       }
+    } catch (UnexpectedDataException ude) {
+      archive.position(position);
+      ude.printStackTrace();
     }
 
-    return null;
+    return FALLBACK_HANDLER.read(object, archive, length);
   }
 
   /**
@@ -58,6 +65,6 @@ public class ExtraDataRegistry {
       }
     }
 
-    return null;
+    return FALLBACK_HANDLER.read(object, value);
   }
 }

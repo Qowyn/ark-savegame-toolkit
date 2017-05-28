@@ -7,18 +7,20 @@ import javax.json.Json;
 import javax.json.JsonArray;
 import javax.json.JsonArrayBuilder;
 import javax.json.JsonString;
-import javax.json.JsonValue;
 
 import qowyn.ark.ArkArchive;
+import qowyn.ark.properties.PropertyArray;
 import qowyn.ark.types.ArkName;
 
 public class ArkArrayString extends ArrayList<String> implements ArkArray<String> {
+
+  public static final ArkName TYPE = ArkName.constantPlain("StrProperty");
 
   private static final long serialVersionUID = 1L;
 
   public ArkArrayString() {}
 
-  public ArkArrayString(ArkArchive archive, int dataSize, ArkName propertyName) {
+  public ArkArrayString(ArkArchive archive, PropertyArray property) {
     int size = archive.getInt();
 
     for (int n = 0; n < size; n++) {
@@ -26,8 +28,7 @@ public class ArkArrayString extends ArrayList<String> implements ArkArray<String
     }
   }
 
-  public ArkArrayString(JsonValue v, int dataSize, ArkName propertyName) {
-    JsonArray a = (JsonArray) v;
+  public ArkArrayString(JsonArray a, PropertyArray property) {
     a.getValuesAs(JsonString.class).forEach(s -> this.add(s.getString()));
   }
 

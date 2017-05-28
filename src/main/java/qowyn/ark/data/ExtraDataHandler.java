@@ -11,7 +11,7 @@ public interface ExtraDataHandler {
 
   public boolean canHandle(GameObject object, JsonValue value);
 
-  public ExtraData read(GameObject object, ArkArchive archive, int length);
+  public ExtraData read(GameObject object, ArkArchive archive, int length) throws UnexpectedDataException;
 
   public ExtraData read(GameObject object, JsonValue value);
 

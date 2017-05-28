@@ -22,11 +22,11 @@ import qowyn.ark.properties.UnreadablePropertyException;
 import qowyn.ark.types.ArkName;
 
 public class ArkSavFile implements PropertyContainer {
-  
+
   private String className;
-  
+
   private List<Property<?>> properties = new ArrayList<>();
-  
+
   public ArkSavFile() {}
 
   public ArkSavFile(String fileName) throws FileNotFoundException, IOException {
@@ -62,7 +62,7 @@ public class ArkSavFile implements PropertyContainer {
 
   public void readBinary(ArkArchive archive) {
     className = archive.getString();
-    
+
     properties.clear();
     try {
       Property<?> property = PropertyRegistry.readProperty(archive);
@@ -75,8 +75,8 @@ public class ArkSavFile implements PropertyContainer {
       upe.printStackTrace();
       return;
     }
-    
-    //TODO: verify 0 int at end
+
+    // TODO: verify 0 int at end
   }
 
   public void writeBinary(String fileName) throws FileNotFoundException, IOException {
@@ -85,7 +85,7 @@ public class ArkSavFile implements PropertyContainer {
 
   public void writeBinary(String fileName, WritingOptions options) throws FileNotFoundException, IOException {
     int size = Integer.BYTES + ArkArchive.getStringLength(className);
-    
+
     size += ArkArchive.getNameLength(ArkName.NAME_NONE, false);
 
     size += properties.stream().mapToInt(p -> p.calculateSize(false)).sum();
@@ -124,7 +124,7 @@ public class ArkSavFile implements PropertyContainer {
 
   public void readJson(JsonObject object) {
     className = object.getString("className");
-    
+
     JsonArray propertiesArray = object.getJsonArray("properties");
     if (propertiesArray != null) {
       properties = propertiesArray.getValuesAs(JsonObject.class).parallelStream().map(PropertyRegistry::fromJSON).collect(Collectors.toList());
@@ -137,7 +137,7 @@ public class ArkSavFile implements PropertyContainer {
     JsonObjectBuilder job = Json.createObjectBuilder();
 
     job.add("className", className);
-    
+
     if (properties != null && !properties.isEmpty()) {
       JsonArrayBuilder propsBuilder = Json.createArrayBuilder();
       properties.stream().map(Property::toJson).forEach(propsBuilder::add);
@@ -147,12 +147,12 @@ public class ArkSavFile implements PropertyContainer {
 
     return job.build();
   }
-  
+
   @Override
   public List<Property<?>> getProperties() {
     return properties;
   }
-  
+
   @Override
   public void setProperties(List<Property<?>> properties) {
     this.properties = properties;

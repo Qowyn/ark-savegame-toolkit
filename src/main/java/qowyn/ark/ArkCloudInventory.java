@@ -21,7 +21,7 @@ public class ArkCloudInventory implements PropertyContainer, GameObjectContainer
 
   private int inventoryVersion;
 
-  private final List<GameObject> objects = new ArrayList<>();
+  private final ArrayList<GameObject> objects = new ArrayList<>();
 
   private GameObject inventoryData;
 
@@ -173,7 +173,7 @@ public class ArkCloudInventory implements PropertyContainer, GameObjectContainer
     this.inventoryVersion = inventoryVersion;
   }
 
-  public List<GameObject> getObjects() {
+  public ArrayList<GameObject> getObjects() {
     return objects;
   }
 

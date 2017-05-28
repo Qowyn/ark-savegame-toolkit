@@ -7,7 +7,6 @@ import java.nio.channels.FileChannel;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
-import java.util.List;
 
 import javax.json.Json;
 import javax.json.JsonArray;
@@ -17,11 +16,11 @@ import javax.json.JsonStructure;
 import javax.json.JsonValue.ValueType;
 import javax.json.stream.JsonGenerator;
 
-import qowyn.ark.arrays.ArkArrayByte;
+import qowyn.ark.arrays.ArkArrayInt8;
 
 public class ArkContainer implements GameObjectContainer {
 
-  private final List<GameObject> objects = new ArrayList<>();
+  private final ArrayList<GameObject> objects = new ArrayList<>();
 
   public ArkContainer() {}
 
@@ -52,7 +51,7 @@ public class ArkContainer implements GameObjectContainer {
     }
   }
 
-  public ArkContainer(ArkArrayByte source) {
+  public ArkContainer(ArkArrayInt8 source) {
     ByteBuffer buffer = ByteBuffer.allocateDirect(source.size());
 
     source.forEach(buffer::put);
@@ -166,11 +165,11 @@ public class ArkContainer implements GameObjectContainer {
     return jab.build();
   }
 
-  public List<GameObject> getObjects() {
+  public ArrayList<GameObject> getObjects() {
     return objects;
   }
 
-  public ArkArrayByte toByteArray() {
+  public ArkArrayInt8 toByteArray() {
     int size = Integer.BYTES;
 
     size += objects.stream().mapToInt(object -> object.getSize(false)).sum();
@@ -192,7 +191,7 @@ public class ArkContainer implements GameObjectContainer {
       object.writeProperties(archive, 0);
     }
 
-    ArkArrayByte result = new ArkArrayByte();
+    ArkArrayInt8 result = new ArkArrayInt8();
 
     buffer.clear();
 

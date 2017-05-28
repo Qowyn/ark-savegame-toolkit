@@ -2,47 +2,41 @@ package qowyn.ark.types;
 
 import java.util.Set;
 
-import javax.json.Json;
-import javax.json.JsonObject;
-import javax.json.JsonObjectBuilder;
+import javax.json.JsonNumber;
+import javax.json.JsonString;
+import javax.json.JsonValue;
 
 import qowyn.ark.ArkArchive;
 import qowyn.ark.NameContainer;
+import qowyn.ark.json.SimpleJsonInteger;
+import qowyn.ark.json.SimpleJsonString;
 
-public class ArkByteValue implements NameContainer {
-
-  private boolean fromEnum;
+public final class ArkByteValue implements NameContainer {
 
   private byte byteValue;
-
-  private ArkName enumName;
 
   private ArkName nameValue;
 
   public ArkByteValue() {}
 
   public ArkByteValue(byte byteValue) {
-    this.fromEnum = false;
-    this.enumName = ArkName.NAME_NONE;
-    this.byteValue = byteValue;
+    setByteValue(byteValue);
   }
 
-  public ArkByteValue(ArkName enumName, ArkName nameValue) {
-    this.fromEnum = true;
-    this.enumName = enumName;
+  public ArkByteValue(ArkName nameValue) {
     this.nameValue = nameValue;
   }
 
-  public ArkByteValue(ArkArchive archive, ArkName enumName) {
-    read(archive, enumName);
+  public ArkByteValue(ArkArchive archive, boolean name) {
+    read(archive, name);
   }
 
-  public ArkByteValue(JsonObject o, ArkName enumName) {
-    fromJson(o, enumName);
+  public ArkByteValue(JsonValue v) {
+    fromJson(v);
   }
 
   public boolean isFromEnum() {
-    return fromEnum;
+    return nameValue != null;
   }
 
   public byte getByteValue() {
@@ -50,56 +44,40 @@ public class ArkByteValue implements NameContainer {
   }
 
   public void setByteValue(byte byteValue) {
-    this.fromEnum = false;
-    this.enumName = ArkName.NAME_NONE;
+    this.nameValue = null;
     this.byteValue = byteValue;
-  }
-
-  public ArkName getEnumName() {
-    return enumName;
   }
 
   public ArkName getNameValue() {
     return nameValue;
   }
 
-  public void setEnumValue(ArkName enumName, ArkName nameValue) {
-    this.fromEnum = true;
-    this.enumName = enumName;
+  public void setNameValue(ArkName nameValue) {
     this.nameValue = nameValue;
   }
 
-  public void fromJson(JsonObject o, ArkName enumName) {
-    this.enumName = enumName;
-    this.fromEnum = enumName != ArkName.NAME_NONE;
-    JsonObject value = o.getJsonObject("value");
-    if (fromEnum) {
-      this.nameValue = ArkName.from(value.getString("value"));
+  public void fromJson(JsonValue v) {
+    if (v instanceof JsonString) {
+      this.nameValue = ArkName.from(((JsonString) v).getString());
     } else {
-      this.byteValue = (byte) value.getInt("value");
+      this.byteValue = (byte) ((JsonNumber) v).intValue();
     }
   }
 
-  public JsonObject toJson() {
-    JsonObjectBuilder job = Json.createObjectBuilder();
-
-    if (fromEnum) {
-      job.add("value", nameValue.toString());
+  public JsonValue toJson() {
+    if (nameValue != null) {
+      return new SimpleJsonString(nameValue.toString());
     } else {
-      job.add("value", byteValue);
+      return new SimpleJsonInteger(byteValue);
     }
-
-    return job.build();
   }
 
   public int getSize(boolean nameTable) {
-    return fromEnum ? ArkArchive.getNameLength(nameValue, nameTable) : 1;
+    return nameValue != null ? ArkArchive.getNameLength(nameValue, nameTable) : 1;
   }
 
-  public void read(ArkArchive archive, ArkName enumName) {
-    this.enumName = enumName;
-    this.fromEnum = enumName != ArkName.NAME_NONE;
-    if (fromEnum) {
+  public void read(ArkArchive archive, boolean name) {
+    if (name) {
       this.nameValue = archive.getName();
     } else {
       this.byteValue = archive.getByte();
@@ -107,7 +85,7 @@ public class ArkByteValue implements NameContainer {
   }
 
   public void write(ArkArchive archive) {
-    if (fromEnum) {
+    if (nameValue != null) {
       archive.putName(nameValue);
     } else {
       archive.putByte(byteValue);
@@ -116,10 +94,14 @@ public class ArkByteValue implements NameContainer {
 
   @Override
   public void collectNames(Set<String> nameTable) {
-    nameTable.add(enumName.getName());
-    if (fromEnum) {
+    if (nameValue != null) {
       nameTable.add(nameValue.getName());
     }
+  }
+
+  @Override
+  public String toString() {
+    return "ArkByteValue [byteValue=" + byteValue + ", nameValue=" + nameValue + "]";
   }
 
 }

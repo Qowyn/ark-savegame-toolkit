@@ -7,18 +7,20 @@ import javax.json.Json;
 import javax.json.JsonArray;
 import javax.json.JsonArrayBuilder;
 import javax.json.JsonNumber;
-import javax.json.JsonValue;
 
 import qowyn.ark.ArkArchive;
+import qowyn.ark.properties.PropertyArray;
 import qowyn.ark.types.ArkName;
 
 public class ArkArrayFloat extends ArrayList<Float> implements ArkArray<Float> {
+
+  public static final ArkName TYPE = ArkName.constantPlain("FloatProperty");
 
   private static final long serialVersionUID = 1L;
 
   public ArkArrayFloat() {}
 
-  public ArkArrayFloat(ArkArchive archive, int dataSize, ArkName propertyName) {
+  public ArkArrayFloat(ArkArchive archive, PropertyArray property) {
     int size = archive.getInt();
 
     for (int n = 0; n < size; n++) {
@@ -26,8 +28,7 @@ public class ArkArrayFloat extends ArrayList<Float> implements ArkArray<Float> {
     }
   }
 
-  public ArkArrayFloat(JsonValue v, int dataSize, ArkName propertyName) {
-    JsonArray a = (JsonArray) v;
+  public ArkArrayFloat(JsonArray a, PropertyArray property) {
     a.getValuesAs(JsonNumber.class).forEach(n -> this.add(n.bigDecimalValue().floatValue()));
   }
 

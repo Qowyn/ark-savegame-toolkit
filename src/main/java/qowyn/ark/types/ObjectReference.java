@@ -145,7 +145,8 @@ public class ObjectReference implements NameContainer {
       } else if (objectType == TYPE_PATH) {
         objectString = archive.getName();
       } else {
-        //System.err.println("Warning: ObjectReference with possibly unknown type " + objectType + " at " + Integer.toHexString(archive.position()));
+        // System.err.println("Warning: ObjectReference with possibly unknown type " + objectType +
+        // " at " + Integer.toHexString(archive.position()));
         archive.position(archive.position() - 4);
         objectType = TYPE_PATH_NO_TYPE;
         objectString = archive.getName();

@@ -4,7 +4,6 @@ import java.util.AbstractList;
 import java.util.Base64;
 import java.util.Set;
 
-import javax.json.JsonString;
 import javax.json.JsonValue;
 
 import qowyn.ark.ArkArchive;
@@ -22,8 +21,8 @@ public class ArkArrayUnknown extends AbstractList<Byte> implements ArkArray<Byte
     value = archive.getBytes(size);
   }
 
-  public ArkArrayUnknown(JsonValue v) {
-    value = DECODER.decode(((JsonString)v).getString());
+  public ArkArrayUnknown(String v) {
+    value = DECODER.decode(v);
   }
 
   @Override

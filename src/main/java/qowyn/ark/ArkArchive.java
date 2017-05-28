@@ -22,9 +22,7 @@ public class ArkArchive {
 
   private Map<String, Integer> nameMap;
 
-  private boolean unknownData = false;
-
-  private boolean unknownNames = false;
+  private final ArkArchiveState state;
 
   private static final Logger LOGGER = Logger.getLogger(ArkArchive.class.getName());
 
@@ -36,12 +34,14 @@ public class ArkArchive {
 
   public ArkArchive(ByteBuffer mbb) {
     this.mbb = mbb.order(ByteOrder.LITTLE_ENDIAN);
+    this.state = new ArkArchiveState();
   }
 
   public ArkArchive(ArkArchive toClone) {
     this.mbb = toClone.mbb.duplicate().order(ByteOrder.LITTLE_ENDIAN);
     this.nameTable = toClone.nameTable;
     this.nameMap = toClone.nameMap;
+    this.state = toClone.state;
   }
 
   public List<String> getNameTable() {
@@ -88,6 +88,16 @@ public class ArkArchive {
     int size = mbb.getInt();
 
     if (size == 0) {
+      return null;
+    }
+
+    if (size == 1) {
+      mbb.position(mbb.position() + 1);
+      return "";
+    }
+
+    if (size == -1) {
+      mbb.position(mbb.position() + 2);
       return "";
     }
 
@@ -233,9 +243,14 @@ public class ArkArchive {
    * @param string
    */
   public void putString(String string) {
-    if (string == null || string.isEmpty()) {
+    if (string == null) {
+      mbb.putInt(0);
+      return;
+    }
+
+    if (string.isEmpty()) {
       mbb.putInt(1);
-      mbb.put((byte) 0); // Better be safe and write a "\0" String
+      mbb.put((byte) 0);
       return;
     }
 
@@ -315,33 +330,32 @@ public class ArkArchive {
    * @return true if some data has been lost
    */
   public boolean hasUnknownData() {
-    return unknownData;
+    return state.unknownData;
   }
 
   /**
    * Set the unknownData flag to true
    */
   public void unknownData() {
-    this.unknownData = true;
+    state.unknownData = true;
   }
 
   /**
-   * Indicates that there might be unknown references to some names.
-   * If the current file has to be written back to disk this should 
-   * be considered by keeping all old names and adding new names to 
+   * Indicates that there might be unknown references to some names. If the current file has to be
+   * written back to disk this should be considered by keeping all old names and adding new names to
    * the end of the list.
    * 
    * @return true if there are unknown names
    */
   public boolean hasUnknownNames() {
-    return unknownNames;
+    return state.unknownNames;
   }
 
   /**
    * Set the unknownNames flag to true
    */
   public void unknownNames() {
-    this.unknownNames = true;
+    state.unknownNames = true;
   }
 
   /**
@@ -366,8 +380,11 @@ public class ArkArchive {
    * @return The amount of bytes needed to store {@code value}
    */
   public static int getStringLength(String value) {
-    if (value == null || value.isEmpty()) {
-      return 5; // Better be safe and write a "\0" String
+    if (value == null) {
+      return 4;
+    }
+    if (value.isEmpty()) {
+      return 5;
     }
     int length = value.length() + 1;
     boolean multibyte = !isAscii(value);

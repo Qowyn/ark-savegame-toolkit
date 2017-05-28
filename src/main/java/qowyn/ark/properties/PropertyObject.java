@@ -6,16 +6,19 @@ import javax.json.JsonObject;
 import javax.json.JsonObjectBuilder;
 
 import qowyn.ark.ArkArchive;
+import qowyn.ark.types.ArkName;
 import qowyn.ark.types.ObjectReference;
 
 public class PropertyObject extends PropertyBase<ObjectReference> {
 
-  public PropertyObject(String name, String typeName, ObjectReference value) {
-    super(name, typeName, 0, value);
+  public static final ArkName TYPE = ArkName.constantPlain("ObjectProperty");
+
+  public PropertyObject(String name, ArkName typeName, ObjectReference value) {
+    super(ArkName.from(name), typeName, 0, value);
   }
 
-  public PropertyObject(String name, String typeName, int index, ObjectReference value) {
-    super(name, typeName, index, value);
+  public PropertyObject(String name, ArkName typeName, int index, ObjectReference value) {
+    super(ArkName.from(name), typeName, index, value);
   }
 
   public PropertyObject(ArkArchive archive, PropertyArgs args) {

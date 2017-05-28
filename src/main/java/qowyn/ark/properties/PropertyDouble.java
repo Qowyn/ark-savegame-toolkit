@@ -1,6 +1,7 @@
 package qowyn.ark.properties;
 
 import qowyn.ark.ArkArchive;
+import qowyn.ark.types.ArkName;
 
 import javax.json.JsonNumber;
 import javax.json.JsonObject;
@@ -11,12 +12,14 @@ import javax.json.JsonValue.ValueType;
 
 public class PropertyDouble extends PropertyBase<Double> {
 
-  public PropertyDouble(String name, String typeName, double value) {
-    super(name, typeName, 0, value);
+  public static final ArkName TYPE = ArkName.constantPlain("DoubleProperty");
+
+  public PropertyDouble(String name, ArkName typeName, double value) {
+    super(ArkName.from(name), typeName, 0, value);
   }
 
-  public PropertyDouble(String name, String typeName, int index, double value) {
-    super(name, typeName, index, value);
+  public PropertyDouble(String name, ArkName typeName, int index, double value) {
+    super(ArkName.from(name), typeName, index, value);
   }
 
   public PropertyDouble(ArkArchive archive, PropertyArgs args) {

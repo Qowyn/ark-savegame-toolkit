@@ -26,7 +26,7 @@ public class StructUniqueNetIdRepl extends StructBase {
   }
 
   public StructUniqueNetIdRepl(JsonValue v) {
-    JsonObject object = (JsonObject)v;
+    JsonObject object = (JsonObject) v;
 
     unk = object.getInt("unk", 0);
     netId = object.getString("netId", "");

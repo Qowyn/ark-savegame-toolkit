@@ -21,7 +21,7 @@ public class ArkTribe implements PropertyContainer, GameObjectContainer {
 
   private int tribeVersion;
 
-  private final List<GameObject> objects = new ArrayList<>();
+  private final ArrayList<GameObject> objects = new ArrayList<>();
 
   private GameObject tribe;
 
@@ -173,7 +173,7 @@ public class ArkTribe implements PropertyContainer, GameObjectContainer {
     this.tribeVersion = tribeVersion;
   }
 
-  public List<GameObject> getObjects() {
+  public ArrayList<GameObject> getObjects() {
     return objects;
   }
 

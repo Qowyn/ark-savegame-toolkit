@@ -5,16 +5,16 @@ class LongLong {
   private final long high;
 
   private final long low;
-  
+
   public LongLong(long high, long low) {
     this.high = high;
     this.low = low;
   }
-  
+
   public long getHigh() {
     return high;
   }
-  
+
   public long getLow() {
     return low;
   }

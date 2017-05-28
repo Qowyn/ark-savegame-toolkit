@@ -4,6 +4,7 @@ import java.util.Set;
 
 import javax.json.JsonObject;
 import javax.json.JsonObjectBuilder;
+import javax.json.JsonValue.ValueType;
 
 import qowyn.ark.ArkArchive;
 import qowyn.ark.arrays.ArkArray;
@@ -14,15 +15,17 @@ import qowyn.ark.types.ArkName;
 
 public class PropertyArray extends PropertyBase<ArkArray<?>> {
 
+  public static final ArkName TYPE = ArkName.constantPlain("ArrayProperty");
+
   private ArkName arrayType;
 
-  public PropertyArray(String name, String typeName, ArkArray<?> value, ArkName arrayType) {
-    super(name, typeName, 0, value);
+  public PropertyArray(String name, ArkName typeName, ArkArray<?> value, ArkName arrayType) {
+    super(ArkName.from(name), typeName, 0, value);
     this.arrayType = arrayType;
   }
 
-  public PropertyArray(String name, String typeName, int index, ArkArray<?> value, ArkName arrayType) {
-    super(name, typeName, index, value);
+  public PropertyArray(String name, ArkName typeName, int index, ArkArray<?> value, ArkName arrayType) {
+    super(ArkName.from(name), typeName, index, value);
     this.arrayType = arrayType;
   }
 
@@ -33,7 +36,7 @@ public class PropertyArray extends PropertyBase<ArkArray<?>> {
     int position = archive.position();
 
     try {
-      value = ArkArrayRegistry.read(archive, arrayType, dataSize, name);
+      value = ArkArrayRegistry.read(archive, this);
 
       if (value == null) {
         throw new UnreadablePropertyException("ArkArrayRegistry returned null");
@@ -53,10 +56,10 @@ public class PropertyArray extends PropertyBase<ArkArray<?>> {
     super(o);
     arrayType = ArkName.from(o.getString("arrayType"));
 
-    if (o.containsKey("unknown")) {
-      value = new ArkArrayUnknown(o.get("unknown"));
+    if (o.get("value").getValueType() == ValueType.STRING) {
+      value = new ArkArrayUnknown(o.getString("value"));
     } else {
-      value = ArkArrayRegistry.read(o.get("value"), arrayType, dataSize, name);
+      value = ArkArrayRegistry.read(o.getJsonArray("value"), this);
     }
   }
 
@@ -79,11 +82,7 @@ public class PropertyArray extends PropertyBase<ArkArray<?>> {
   @Override
   protected void serializeValue(JsonObjectBuilder job) {
     job.add("arrayType", arrayType.toString());
-    if (value instanceof ArkArrayUnknown) {
-      job.add("unknown", value.toJson());
-    } else {
-      job.add("value", value.toJson());
-    }
+    job.add("value", value.toJson());
   }
 
   @Override
@@ -112,6 +111,14 @@ public class PropertyArray extends PropertyBase<ArkArray<?>> {
   @Override
   protected boolean isDataSizeNeeded() {
     return value instanceof ArkArrayStruct;
+  }
+
+  public ArkName getArrayType() {
+    return arrayType;
+  }
+
+  public void setArrayType(ArkName arrayType) {
+    this.arrayType = arrayType;
   }
 
 }

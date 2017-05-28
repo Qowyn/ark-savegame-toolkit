@@ -4,15 +4,18 @@ import javax.json.JsonObject;
 import javax.json.JsonObjectBuilder;
 
 import qowyn.ark.ArkArchive;
+import qowyn.ark.types.ArkName;
 
 public class PropertyStr extends PropertyBase<String> {
 
-  public PropertyStr(String name, String typeName, String value) {
-    super(name, typeName, 0, value);
+  public static final ArkName TYPE = ArkName.constantPlain("StrProperty");
+
+  public PropertyStr(String name, ArkName typeName, String value) {
+    super(ArkName.from(name), typeName, 0, value);
   }
 
-  public PropertyStr(String name, String typeName, int index, String value) {
-    super(name, typeName, index, value);
+  public PropertyStr(String name, ArkName typeName, int index, String value) {
+    super(ArkName.from(name), typeName, index, value);
   }
 
   public PropertyStr(ArkArchive archive, PropertyArgs args) {

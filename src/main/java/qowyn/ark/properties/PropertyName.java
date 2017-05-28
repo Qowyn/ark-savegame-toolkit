@@ -10,12 +10,14 @@ import qowyn.ark.types.ArkName;
 
 public class PropertyName extends PropertyBase<ArkName> {
 
-  public PropertyName(String name, String typeName, ArkName value) {
-    super(name, typeName, 0, value);
+  public static final ArkName TYPE = ArkName.constantPlain("NameProperty");
+
+  public PropertyName(String name, ArkName typeName, ArkName value) {
+    super(ArkName.from(name), typeName, 0, value);
   }
 
-  public PropertyName(String name, String typeName, int index, ArkName value) {
-    super(name, typeName, index, value);
+  public PropertyName(String name, ArkName typeName, int index, ArkName value) {
+    super(ArkName.from(name), typeName, index, value);
   }
 
   public PropertyName(ArkArchive archive, PropertyArgs args) {

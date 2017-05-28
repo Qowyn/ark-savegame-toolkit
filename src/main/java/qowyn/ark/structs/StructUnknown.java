@@ -21,7 +21,7 @@ public class StructUnknown extends StructBase {
   }
 
   public StructUnknown(JsonValue v) {
-    JsonString s = (JsonString)v;
+    JsonString s = (JsonString) v;
     value = DECODER.decode(s.getString());
   }
 

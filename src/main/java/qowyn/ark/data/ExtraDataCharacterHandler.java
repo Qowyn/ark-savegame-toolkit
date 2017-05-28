@@ -12,7 +12,7 @@ public class ExtraDataCharacterHandler implements ExtraDataHandler {
 
   @Override
   public boolean canHandle(GameObject object, int length) {
-    return object.getClassString().contains("_Character_");
+    return object.getClassString().contains("_Character_") && length == 8;
   }
 
   @Override
@@ -21,15 +21,15 @@ public class ExtraDataCharacterHandler implements ExtraDataHandler {
   }
 
   @Override
-  public ExtraData read(GameObject object, ArkArchive archive, int length) {
+  public ExtraData read(GameObject object, ArkArchive archive, int length) throws UnexpectedDataException {
     int shouldBeZero = archive.getInt();
     if (shouldBeZero != 0) {
-      System.err.println("Expected int after properties to be 0 but found " + shouldBeZero + " at " + Integer.toHexString(archive.position() - 4));
+      throw new UnexpectedDataException("Expected int after properties to be 0 but found " + shouldBeZero + " at " + Integer.toHexString(archive.position() - 4));
     }
 
     int shouldBeOne = archive.getInt();
     if (shouldBeOne != 1) {
-      System.err.println("Expected int after properties to be 1 but found " + shouldBeOne + " at " + Integer.toHexString(archive.position() - 4));
+      throw new UnexpectedDataException("Expected int after properties to be 1 but found " + shouldBeOne + " at " + Integer.toHexString(archive.position() - 4));
     }
 
     return INSTANCE;

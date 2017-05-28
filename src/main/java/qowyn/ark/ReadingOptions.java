@@ -13,6 +13,8 @@ public class ReadingOptions extends BaseOptions {
 
   private boolean embeddedData = true;
 
+  private boolean dataFilesObjectMap = true;
+
   private boolean gameObjects = true;
 
   private boolean gameObjectProperties = true;
@@ -82,6 +84,15 @@ public class ReadingOptions extends BaseOptions {
    */
   public ReadingOptions withEmbeddedData(boolean embeddedData) {
     this.embeddedData = embeddedData;
+    return this;
+  }
+
+  public boolean getDataFilesObjectMap() {
+    return dataFilesObjectMap;
+  }
+
+  public ReadingOptions withDataFilesObjectMap(boolean dataFilesObjectMap) {
+    this.dataFilesObjectMap = dataFilesObjectMap;
     return this;
   }
 

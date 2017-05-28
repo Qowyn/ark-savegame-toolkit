@@ -14,26 +14,27 @@ import qowyn.ark.ArkArchive;
 import qowyn.ark.GameObject;
 import qowyn.ark.properties.UnreadablePropertyException;
 import qowyn.ark.structs.StructPropertyList;
+import qowyn.ark.types.ArkName;
 
 public class ExtraDataFoliageHandler implements ExtraDataHandler {
 
+  private static final ArkName CLASS_NAME = ArkName.constantPlain("InstancedFoliageActor");
+
   @Override
   public boolean canHandle(GameObject object, int length) {
-    return object.getClassString().equals("InstancedFoliageActor");
+    return object.getClassName() == CLASS_NAME;
   }
 
   @Override
   public boolean canHandle(GameObject object, JsonValue value) {
-    return object.getClassString().equals("InstancedFoliageActor") && value.getValueType() == ValueType.ARRAY;
+    return object.getClassName() == CLASS_NAME && value.getValueType() == ValueType.ARRAY;
   }
 
   @Override
-  public ExtraData read(GameObject object, ArkArchive archive, int length) {
+  public ExtraData read(GameObject object, ArkArchive archive, int length) throws UnexpectedDataException {
     int shouldBeZero = archive.getInt();
     if (shouldBeZero != 0) {
-      System.err.println("Expected int after properties to be 0 but found " + shouldBeZero + " at " + Integer.toHexString(archive.position() - 4));
-      archive.unknownData();
-      archive.unknownNames();
+      throw new UnexpectedDataException("Expected int after properties to be 0 but found " + shouldBeZero + " at " + Integer.toHexString(archive.position() - 4));
     }
 
     int structMapCount = archive.getInt();
@@ -51,9 +52,7 @@ public class ExtraDataFoliageHandler implements ExtraDataHandler {
 
           int shouldBeZero2 = archive.getInt();
           if (shouldBeZero2 != 0) {
-            System.err.println("Expected int after properties to be 0 but found " + shouldBeZero2 + " at " + Integer.toHexString(archive.position() - 4));
-            archive.unknownData();
-            archive.unknownNames();
+            throw new UnexpectedDataException("Expected int after properties to be 0 but found " + shouldBeZero2 + " at " + Integer.toHexString(archive.position() - 4));
           }
 
           structMap.put(structName, properties);
@@ -62,8 +61,7 @@ public class ExtraDataFoliageHandler implements ExtraDataHandler {
         structMapList.add(structMap);
       }
     } catch (UnreadablePropertyException upe) {
-      upe.printStackTrace();
-      // Just stop reading and attach collected structs
+      throw new UnexpectedDataException(upe);
     }
 
     ExtraDataFoliage extraDataFoliage = new ExtraDataFoliage();
@@ -83,7 +81,8 @@ public class ExtraDataFoliageHandler implements ExtraDataHandler {
       Map<String, StructPropertyList> structMap = new HashMap<>();
 
       for (Map.Entry<String, JsonValue> structs : structMapJson.entrySet()) {
-        structMap.put(structs.getKey(), new StructPropertyList(structs.getValue()));
+        String key = structs.getKey().equals(ExtraDataFoliage.NULL_PLACEHOLDER) ? null : structs.getKey();
+        structMap.put(key, new StructPropertyList(structs.getValue()));
       }
 
       structMapList.add(structMap);

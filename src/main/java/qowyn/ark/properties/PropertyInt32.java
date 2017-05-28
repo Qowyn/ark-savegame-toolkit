@@ -4,15 +4,20 @@ import javax.json.JsonObject;
 import javax.json.JsonObjectBuilder;
 
 import qowyn.ark.ArkArchive;
+import qowyn.ark.types.ArkName;
 
 public class PropertyInt32 extends PropertyBase<Integer> {
 
-  public PropertyInt32(String name, String typeName, int value) {
-    super(name, typeName, 0, value);
+  public static final ArkName TYPE_SIGNED = ArkName.constantPlain("IntProperty");
+
+  public static final ArkName TYPE_UNSIGNED = ArkName.constantPlain("UInt32Property");
+
+  public PropertyInt32(String name, ArkName typeName, int value) {
+    super(ArkName.from(name), typeName, 0, value);
   }
 
-  public PropertyInt32(String name, String typeName, int index, int value) {
-    super(name, typeName, index, value);
+  public PropertyInt32(String name, ArkName typeName, int index, int value) {
+    super(ArkName.from(name), typeName, index, value);
   }
 
   public PropertyInt32(ArkArchive archive, PropertyArgs args) {

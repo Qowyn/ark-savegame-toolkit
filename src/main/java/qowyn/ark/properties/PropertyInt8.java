@@ -4,15 +4,18 @@ import javax.json.JsonObject;
 import javax.json.JsonObjectBuilder;
 
 import qowyn.ark.ArkArchive;
+import qowyn.ark.types.ArkName;
 
 public class PropertyInt8 extends PropertyBase<Byte> {
 
-  public PropertyInt8(String name, String typeName, byte value) {
-    super(name, typeName, 0, value);
+  public static final ArkName TYPE = ArkName.constantPlain("Int8Property");
+
+  public PropertyInt8(String name, ArkName typeName, byte value) {
+    super(ArkName.from(name), typeName, 0, value);
   }
 
-  public PropertyInt8(String name, String typeName, int index, byte value) {
-    super(name, typeName, index, value);
+  public PropertyInt8(String name, ArkName typeName, int index, byte value) {
+    super(ArkName.from(name), typeName, index, value);
   }
 
   public PropertyInt8(ArkArchive archive, PropertyArgs args) {

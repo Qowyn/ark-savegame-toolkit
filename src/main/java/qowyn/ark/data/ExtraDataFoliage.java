@@ -15,6 +15,8 @@ import qowyn.ark.structs.StructPropertyList;
 
 public class ExtraDataFoliage implements ExtraData, NameContainer {
 
+  static final String NULL_PLACEHOLDER = "/NULL_KEY";
+
   private List<Map<String, StructPropertyList>> structMapList;
 
   public List<Map<String, StructPropertyList>> getStructMapList() {
@@ -48,7 +50,7 @@ public class ExtraDataFoliage implements ExtraData, NameContainer {
     for (Map<String, StructPropertyList> structMap : structMapList) {
       JsonObjectBuilder job = Json.createObjectBuilder();
       for (Map.Entry<String, StructPropertyList> entry : structMap.entrySet()) {
-        job.add(entry.getKey(), entry.getValue().toJson());
+        job.add(entry.getKey() == null ? NULL_PLACEHOLDER : entry.getKey(), entry.getValue().toJson());
       }
       jab.add(job);
     }

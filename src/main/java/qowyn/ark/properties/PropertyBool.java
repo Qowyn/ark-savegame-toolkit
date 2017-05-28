@@ -4,15 +4,18 @@ import javax.json.JsonObject;
 import javax.json.JsonObjectBuilder;
 
 import qowyn.ark.ArkArchive;
+import qowyn.ark.types.ArkName;
 
 public class PropertyBool extends PropertyBase<Boolean> {
 
-  public PropertyBool(String name, String typeName, boolean value) {
-    super(name, typeName, 0, value);
+  public static final ArkName TYPE = ArkName.constantPlain("BoolProperty");
+
+  public PropertyBool(String name, ArkName typeName, boolean value) {
+    super(ArkName.from(name), typeName, 0, value);
   }
 
-  public PropertyBool(String name, String typeName, int index, boolean value) {
-    super(name, typeName, index, value);
+  public PropertyBool(String name, ArkName typeName, int index, boolean value) {
+    super(ArkName.from(name), typeName, index, value);
   }
 
   public PropertyBool(ArkArchive archive, PropertyArgs args) {

@@ -18,8 +18,8 @@ public class StructRegistry {
   public static final Map<ArkName, ArkName> NAME_TYPE_MAP = new HashMap<>();
 
   public static void addStruct(String name, StructBinaryConstructor binary, StructJsonConstructor json) {
-    TYPE_MAP.put(ArkName.from(name), binary);
-    TYPE_JSON_MAP.put(ArkName.from(name), json);
+    TYPE_MAP.put(ArkName.constantPlain(name), binary);
+    TYPE_JSON_MAP.put(ArkName.constantPlain(name), json);
   }
 
   static {
@@ -31,8 +31,8 @@ public class StructRegistry {
     addStruct("Rotator", StructVector::new, StructVector::new);
     addStruct("UniqueNetIdRepl", StructUniqueNetIdRepl::new, StructUniqueNetIdRepl::new);
 
-    NAME_TYPE_MAP.put(ArkName.from("CustomColors"), ArkName.from("Color"));
-    NAME_TYPE_MAP.put(ArkName.from("CustomColours_60_7D3267C846B277953C0C41AEBD54FBCB"), ArkName.from("LinearColor"));
+    NAME_TYPE_MAP.put(ArkName.constantPlain("CustomColors"), ArkName.constantPlain("Color"));
+    NAME_TYPE_MAP.put(ArkName.constantPlain("CustomColours_60_7D3267C846B277953C0C41AEBD54FBCB"), ArkName.constantPlain("LinearColor"));
   }
 
   public static ArkName mapArrayNameToTypeName(ArkName arrayName) {

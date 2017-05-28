@@ -13,15 +13,17 @@ import qowyn.ark.types.ArkName;
 
 public class PropertyStruct extends PropertyBase<Struct> {
 
+  public static final ArkName TYPE = ArkName.constantPlain("StructProperty");
+
   private ArkName structType;
 
-  public PropertyStruct(String name, String typeName, Struct value, ArkName structType) {
-    super(name, typeName, 0, value);
+  public PropertyStruct(String name, ArkName typeName, Struct value, ArkName structType) {
+    super(ArkName.from(name), typeName, 0, value);
     this.structType = structType;
   }
 
-  public PropertyStruct(String name, String typeName, int index, Struct value, ArkName structType) {
-    super(name, typeName, index, value);
+  public PropertyStruct(String name, ArkName typeName, int index, Struct value, ArkName structType) {
+    super(ArkName.from(name), typeName, index, value);
     this.structType = structType;
   }
 
@@ -32,7 +34,7 @@ public class PropertyStruct extends PropertyBase<Struct> {
     int position = archive.position();
     try {
       value = StructRegistry.read(archive, structType);
-      
+
       if (value == null) {
         throw new UnreadablePropertyException("StructRegistry returned null");
       }
@@ -94,6 +96,14 @@ public class PropertyStruct extends PropertyBase<Struct> {
     super.collectNames(nameTable);
     nameTable.add(structType.getName());
     value.collectNames(nameTable);
+  }
+
+  public ArkName getStructType() {
+    return structType;
+  }
+  
+  public void setStructType(ArkName structType) {
+    this.structType = structType;
   }
 
 }

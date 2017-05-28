@@ -29,7 +29,7 @@ public class ArkLocalProfile implements PropertyContainer, GameObjectContainer {
 
   private byte[] unknownData;
 
-  private final List<GameObject> objects = new ArrayList<>();
+  private final ArrayList<GameObject> objects = new ArrayList<>();
 
   private GameObject localProfile;
 
@@ -198,7 +198,7 @@ public class ArkLocalProfile implements PropertyContainer, GameObjectContainer {
     this.localProfileVersion = localProfileVersion;
   }
 
-  public List<GameObject> getObjects() {
+  public ArrayList<GameObject> getObjects() {
     return objects;
   }
 

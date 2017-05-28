@@ -7,18 +7,22 @@ import javax.json.Json;
 import javax.json.JsonArray;
 import javax.json.JsonArrayBuilder;
 import javax.json.JsonNumber;
-import javax.json.JsonValue;
 
 import qowyn.ark.ArkArchive;
+import qowyn.ark.properties.PropertyArray;
 import qowyn.ark.types.ArkName;
 
 public class ArkArrayInt8 extends ArrayList<Byte> implements ArkArray<Byte> {
+
+  public static final ArkName TYPE_SIGNED = ArkName.constantPlain("Int8Property");
+
+  public static final ArkName TYPE_UNSIGNED = ArkName.constantPlain("ByteProperty");
 
   private static final long serialVersionUID = 1L;
 
   public ArkArrayInt8() {}
 
-  public ArkArrayInt8(ArkArchive archive, int dataSize, ArkName propertyName) {
+  public ArkArrayInt8(ArkArchive archive, PropertyArray property) {
     int size = archive.getInt();
 
     for (int n = 0; n < size; n++) {
@@ -26,9 +30,8 @@ public class ArkArrayInt8 extends ArrayList<Byte> implements ArkArray<Byte> {
     }
   }
 
-  public ArkArrayInt8(JsonValue v, int dataSize, ArkName propertyName) {
-    JsonArray a = (JsonArray) v;
-    a.getValuesAs(JsonNumber.class).forEach(n -> this.add((byte)n.intValue()));
+  public ArkArrayInt8(JsonArray a, PropertyArray property) {
+    a.getValuesAs(JsonNumber.class).forEach(n -> this.add((byte) n.intValue()));
   }
 
   @Override

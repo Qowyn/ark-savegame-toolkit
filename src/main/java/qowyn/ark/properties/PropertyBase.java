@@ -22,9 +22,9 @@ public abstract class PropertyBase<T> implements Property<T> {
 
   protected T value;
 
-  public PropertyBase(String name, String typeName, int index, T value) {
-    this.name = ArkName.from(name);
-    this.typeName = ArkName.from(typeName);
+  public PropertyBase(ArkName name, ArkName typeName, int index, T value) {
+    this.name = name;
+    this.typeName = typeName;
     this.index = index;
     this.value = value;
   }
@@ -174,7 +174,7 @@ public abstract class PropertyBase<T> implements Property<T> {
   public T getValue() {
     return value;
   }
-  
+
   @Override
   public void setValue(T value) {
     this.value = value;

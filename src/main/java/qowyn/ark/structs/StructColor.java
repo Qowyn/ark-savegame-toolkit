@@ -10,6 +10,7 @@ import qowyn.ark.JsonHelper;
 
 /**
  * Essentially FColor
+ * 
  * @author Roland Firmont
  *
  */
@@ -51,31 +52,31 @@ public class StructColor extends StructBase {
   public byte getB() {
     return b;
   }
-  
+
   public void setB(byte b) {
     this.b = b;
   }
-  
+
   public byte getG() {
     return g;
   }
-  
+
   public void setG(byte g) {
     this.g = g;
   }
-  
+
   public byte getR() {
     return r;
   }
-  
+
   public void setR(byte r) {
     this.r = r;
   }
-  
+
   public byte getA() {
     return a;
   }
-  
+
   public void setA(byte a) {
     this.a = a;
   }

@@ -8,9 +8,10 @@ import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Objects;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ForkJoinPool;
@@ -32,6 +33,7 @@ import com.lmax.disruptor.dsl.ProducerType;
 
 import qowyn.ark.disruptor.JsonObjectEvent;
 import qowyn.ark.types.EmbeddedData;
+import qowyn.ark.types.ListAppendingSet;
 import qowyn.ark.types.ObjectReference;
 
 public class ArkSavegame implements GameObjectContainer {
@@ -44,11 +46,17 @@ public class ArkSavegame implements GameObjectContainer {
 
   protected float gameTime;
 
-  protected List<String> dataFiles = new ArrayList<>();
+  protected final ArrayList<String> dataFiles = new ArrayList<>();
 
-  protected List<EmbeddedData> embeddedData = new ArrayList<>();
+  protected final ArrayList<EmbeddedData> embeddedData = new ArrayList<>();
 
-  protected List<GameObject> objects = new ArrayList<>();
+  protected final Map<Integer, List<String>> dataFilesObjectMap = new LinkedHashMap<>();
+
+  protected final ArrayList<GameObject> objects = new ArrayList<>();
+
+  protected List<String> oldNameList;
+
+  protected boolean hasUnknownData;
 
   public ArkSavegame() {}
 
@@ -103,29 +111,25 @@ public class ArkSavegame implements GameObjectContainer {
     this.gameTime = gameTime;
   }
 
-  public List<String> getDataFiles() {
+  public ArrayList<String> getDataFiles() {
     return dataFiles;
   }
 
-  public void setDataFiles(List<String> dataFiles) {
-    this.dataFiles = Objects.requireNonNull(dataFiles);
-  }
-
-  public List<EmbeddedData> getEmbeddedData() {
+  public ArrayList<EmbeddedData> getEmbeddedData() {
     return embeddedData;
   }
 
-  public void setEmbeddedData(List<EmbeddedData> embeddedData) {
-    this.embeddedData = Objects.requireNonNull(embeddedData);
-  }
-
   @Override
-  public List<GameObject> getObjects() {
+  public ArrayList<GameObject> getObjects() {
     return objects;
   }
 
-  public void setObjects(List<GameObject> objects) {
-    this.objects = Objects.requireNonNull(objects);
+  public boolean hasUnknownNames() {
+    return oldNameList != null;
+  }
+
+  public boolean hasUnknownData() {
+    return hasUnknownData;
   }
 
   public void readBinary(ArkArchive archive, ReadingOptions options) {
@@ -138,19 +142,12 @@ public class ArkSavegame implements GameObjectContainer {
 
     readBinaryDataFiles(archive, options);
     readBinaryEmbeddedData(archive, options);
-
-    int unknownValue = archive.getInt();
-    if (unknownValue != 0) {
-      archive.unknownData();
-      for (int n = 0; n < unknownValue; n++) {
-        // skip int int string
-        archive.skipBytes(8);
-        archive.skipString();
-      }
-    }
-
+    readBinaryDataFilesObjectMap(archive, options);
     readBinaryObjects(archive, options);
     readBinaryObjectProperties(archive, options);
+
+    oldNameList = archive.hasUnknownNames() ? archive.getNameTable() : null;
+    hasUnknownData = archive.hasUnknownData();
   }
 
   protected void readBinaryHeader(ArkArchive archive) {
@@ -190,7 +187,7 @@ public class ArkSavegame implements GameObjectContainer {
     int count = archive.getInt();
 
     if (options.getDataFiles()) {
-      dataFiles.clear();
+    dataFiles.clear();
       for (int n = 0; n < count; n++) {
         dataFiles.add(archive.getString());
       }
@@ -206,7 +203,7 @@ public class ArkSavegame implements GameObjectContainer {
     int count = archive.getInt();
 
     if (options.getEmbeddedData()) {
-      embeddedData.clear();
+    embeddedData.clear();
       for (int n = 0; n < count; n++) {
         embeddedData.add(new EmbeddedData(archive));
       }
@@ -214,6 +211,32 @@ public class ArkSavegame implements GameObjectContainer {
       archive.unknownData();
       for (int n = 0; n < count; n++) {
         EmbeddedData.skip(archive);
+      }
+    }
+  }
+
+  protected void readBinaryDataFilesObjectMap(ArkArchive archive, ReadingOptions options) {
+    dataFilesObjectMap.clear();
+    if (options.getDataFilesObjectMap()) {
+      int dataFilesCount = archive.getInt();
+      for (int n = 0; n < dataFilesCount; n++) {
+        int level = archive.getInt();
+        int count = archive.getInt();
+        List<String> names = new ArrayList<>(count);
+        for (int index = 0; index < count; index++) {
+          names.add(archive.getString());
+        }
+        dataFilesObjectMap.put(level, names);
+      }
+    } else {
+      archive.unknownData();
+      int count = archive.getInt();
+      for (int entry = 0; entry < count; entry++) {
+        archive.skipBytes(4);
+        int stringCount = archive.getInt();
+        for (int stringIndex = 0; stringIndex < stringCount; stringIndex++) {
+          archive.skipString();
+        }
       }
     }
   }
@@ -283,7 +306,7 @@ public class ArkSavegame implements GameObjectContainer {
     int size = calculateHeaderSize();
     size += calculateDataFilesSize();
     size += calculateEmbeddedDataSize();
-    size += 4; // unknown field
+    size += calculateDataFilesObjectMapSize();
     size += calculateObjectsSize(saveVersion == 6);
 
     Set<String> nameTable;
@@ -291,11 +314,14 @@ public class ArkSavegame implements GameObjectContainer {
     if (saveVersion == 6) {
       nameTableOffset = size;
 
-      nameTable = new LinkedHashSet<>();
+      nameTable = oldNameList != null ? new ListAppendingSet<>(oldNameList) : new LinkedHashSet<>();
 
       objects.forEach(o -> o.collectNames(nameTable));
 
-      size += 4 + nameTable.stream().mapToInt(ArkArchive::getStringLength).sum();
+      if (oldNameList != null) {
+      } else {
+        size += 4 + nameTable.stream().mapToInt(ArkArchive::getStringLength).sum();
+      }
     } else {
       nameTable = null;
     }
@@ -316,13 +342,12 @@ public class ArkSavegame implements GameObjectContainer {
       ArkArchive archive = new ArkArchive(buffer);
 
       if (nameTable != null) {
-        archive.setNameTable(new ArrayList<>(nameTable));
       }
 
       writeBinaryHeader(archive);
       writeBinaryDataFiles(archive);
       writeBinaryEmbeddedData(archive);
-      archive.putInt(0); // Unknown Field
+      writeBinaryDataFilesObjectMap(archive);
       writeBinaryObjects(archive);
 
       if (saveVersion == 6) {
@@ -363,6 +388,14 @@ public class ArkSavegame implements GameObjectContainer {
   protected void writeBinaryEmbeddedData(ArkArchive archive) {
     archive.putInt(embeddedData.size());
     embeddedData.forEach(ed -> ed.write(archive));
+  }
+
+  protected void writeBinaryDataFilesObjectMap(ArkArchive archive) {
+    archive.putInt(dataFilesObjectMap.size());
+      archive.putInt(key.intValue());
+      archive.putInt(dataFilesObjectMap.get(key).size());
+      dataFilesObjectMap.get(key).forEach(archive::putString);
+    }
   }
 
   protected void writeBinaryObjects(ArkArchive archive) {
@@ -426,11 +459,15 @@ public class ArkSavegame implements GameObjectContainer {
   }
 
   protected int calculateDataFilesSize() {
-    return 4 + dataFiles.parallelStream().mapToInt(ArkArchive::getStringLength).sum();
+    return 4 + dataFiles.stream().mapToInt(ArkArchive::getStringLength).sum();
   }
 
   protected int calculateEmbeddedDataSize() {
-    return 4 + embeddedData.parallelStream().mapToInt(EmbeddedData::getSize).sum();
+    return 4 + embeddedData.stream().mapToInt(EmbeddedData::getSize).sum();
+  }
+
+  protected int calculateDataFilesObjectMapSize() {
+    return 4 + dataFilesObjectMap.entrySet().stream().mapToInt(entry -> 8 + entry.getValue().stream().mapToInt(ArkArchive::getStringLength).sum()).sum();
   }
 
   protected int calculateObjectsSize(boolean nameTable) {
@@ -445,39 +482,65 @@ public class ArkSavegame implements GameObjectContainer {
     readJsonHeader(object);
     readJsonDataFiles(object, options);
     readJsonEmbeddedData(object, options);
+    readJsonDataFilesObjectMap(object, options);
     readJsonObjects(object, options);
   }
 
   protected void readJsonHeader(JsonObject object) {
     saveVersion = (short) object.getInt("saveVersion");
     gameTime = object.getJsonNumber("gameTime").bigDecimalValue().floatValue();
+
+    if (object.containsKey("preservedNames")) {
+      JsonArray preservedNames = object.getJsonArray("preservedNames");
+      oldNameList = new ArrayList<>(preservedNames.size());
+      preservedNames.getValuesAs(JsonString.class).forEach(s -> oldNameList.add(s.getString()));
+    } else {
+      oldNameList = null;
+    }
   }
 
   protected void readJsonDataFiles(JsonObject object, ReadingOptions options) {
+    dataFiles.clear();
     if (options.getDataFiles()) {
       JsonArray dataFilesArray = object.getJsonArray("dataFiles");
       if (dataFilesArray != null) {
-        dataFiles = new ArrayList<>(dataFilesArray.size());
+        dataFiles.ensureCapacity(dataFilesArray.size());
         dataFilesArray.getValuesAs(JsonString.class).forEach(s -> dataFiles.add(s.getString()));
       }
     }
   }
 
   protected void readJsonEmbeddedData(JsonObject object, ReadingOptions options) {
+    embeddedData.clear();
     if (options.getEmbeddedData()) {
       JsonArray embeddedDataArray = object.getJsonArray("embeddedData");
       if (embeddedDataArray != null) {
-        embeddedData = new ArrayList<>(embeddedDataArray.size());
+        embeddedData.ensureCapacity(embeddedDataArray.size());
         embeddedDataArray.getValuesAs(JsonObject.class).forEach(o -> embeddedData.add(new EmbeddedData(o)));
       }
     }
   }
 
+  protected void readJsonDataFilesObjectMap(JsonObject object, ReadingOptions options) {
+    dataFilesObjectMap.clear();
+    if (options.getDataFilesObjectMap()) {
+      JsonObject dataFilesObjectMapObject = object.getJsonObject("dataFilesObjectMap");
+      if (dataFilesObjectMapObject != null) {
+        dataFilesObjectMapObject.forEach((key, list) -> {
+          List<String> objectNameList = new ArrayList<>(jsonList.size());
+          jsonList.getValuesAs(JsonString.class).forEach(jsonString -> objectNameList.add(jsonString.getString()));
+          dataFilesObjectMap.put(Integer.valueOf(key), objectNameList);
+        });
+      }
+    }
+  }
+
   protected void readJsonObjects(JsonObject object, ReadingOptions options) {
+    objects.clear();
     if (options.getGameObjects()) {
       JsonArray objectsArray = object.getJsonArray("objects");
       if (objectsArray != null) {
-        objects = new ArrayList<>(objectsArray.size());
+        objects.ensureCapacity(objectsArray.size());
         objectsArray.getValuesAs(JsonObject.class).forEach(o -> objects.add(new GameObject(o, options.getGameObjectProperties())));
 
         for (int i = 0; i < objects.size(); i++) {
@@ -502,6 +565,14 @@ public class ArkSavegame implements GameObjectContainer {
     generator.write("saveVersion", saveVersion);
     generator.write("gameTime", gameTime);
 
+    if (oldNameList != null && !oldNameList.isEmpty()) {
+      generator.writeStartArray("preservedNames");
+
+      oldNameList.forEach(generator::write);
+
+      generator.writeEnd();
+    }
+
     if (!dataFiles.isEmpty()) {
       generator.writeStartArray("dataFiles");
 
@@ -514,6 +585,18 @@ public class ArkSavegame implements GameObjectContainer {
       generator.writeStartArray("embeddedData");
 
       embeddedData.forEach(ed -> generator.write(ed.toJson()));
+
+      generator.writeEnd();
+    }
+
+    if (!dataFilesObjectMap.isEmpty()) {
+      generator.writeStartObject("dataFilesObjectMap");
+
+      dataFilesObjectMap.forEach((key, list) -> {
+        generator.writeStartArray(key.toString());
+        list.forEach(generator::write);
+        generator.writeEnd();
+      });
 
       generator.writeEnd();
     }

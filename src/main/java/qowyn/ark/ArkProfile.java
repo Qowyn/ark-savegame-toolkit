@@ -21,7 +21,7 @@ public class ArkProfile implements PropertyContainer, GameObjectContainer {
 
   private int profileVersion;
 
-  private final List<GameObject> objects = new ArrayList<>();
+  private final ArrayList<GameObject> objects = new ArrayList<>();
 
   private GameObject profile;
 
@@ -173,7 +173,7 @@ public class ArkProfile implements PropertyContainer, GameObjectContainer {
     this.profileVersion = profileVersion;
   }
 
-  public List<GameObject> getObjects() {
+  public ArrayList<GameObject> getObjects() {
     return objects;
   }
 

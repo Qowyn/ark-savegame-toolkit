@@ -12,24 +12,30 @@ import qowyn.ark.types.ArkName;
 
 public class PropertyByte extends PropertyBase<ArkByteValue> {
 
-  public PropertyByte(String name, String typeName, ArkByteValue value) {
-    super(name, typeName, 0, value);
+  public static final ArkName TYPE = ArkName.constantPlain("ByteProperty");
+
+  private ArkName enumType;
+
+  public PropertyByte(String name, ArkName typeName, ArkByteValue value, ArkName enumType) {
+    super(ArkName.from(name), typeName, 0, value);
+    this.enumType = enumType;
   }
 
-  public PropertyByte(String name, String typeName, int index, ArkByteValue value) {
-    super(name, typeName, index, value);
+  public PropertyByte(String name, ArkName typeName, int index, ArkByteValue value, ArkName enumType) {
+    super(ArkName.from(name), typeName, index, value);
+    this.enumType = enumType;
   }
 
   public PropertyByte(ArkArchive archive, PropertyArgs args) {
     super(archive, args);
-    ArkName enumName = archive.getName();
-    value = new ArkByteValue(archive, enumName);
+    enumType = archive.getName();
+    value = new ArkByteValue(archive, !enumType.equals(ArkName.NAME_NONE));
   }
 
   public PropertyByte(JsonObject o) {
     super(o);
-    ArkName enumName = ArkName.from(o.getString("enum", ArkName.NAME_NONE.toString()));
-    value = new ArkByteValue(o, enumName);
+    enumType = ArkName.from(o.getString("enum", ArkName.NAME_NONE.toString()));
+    value = new ArkByteValue(o);
   }
 
   @Override
@@ -39,19 +45,19 @@ public class PropertyByte extends PropertyBase<ArkByteValue> {
 
   @Override
   protected void serializeValue(JsonObjectBuilder job) {
-    JsonHelper.addString(job, "enum", value.getEnumName().toString(), ArkName.NAME_NONE.toString());
+    JsonHelper.addString(job, "enum", enumType.toString(), ArkName.NAME_NONE.toString());
     job.add("value", value.toJson());
   }
 
   @Override
   protected void writeValue(ArkArchive archive) {
-    archive.putName(value.getEnumName());
+    archive.putName(enumType);
     value.write(archive);
   }
 
   @Override
   protected int calculateAdditionalSize(boolean nameTable) {
-    return ArkArchive.getNameLength(value.getEnumName(), nameTable);
+    return ArkArchive.getNameLength(enumType, nameTable);
   }
 
   @Override
@@ -62,7 +68,16 @@ public class PropertyByte extends PropertyBase<ArkByteValue> {
   @Override
   public void collectNames(Set<String> nameTable) {
     super.collectNames(nameTable);
+    nameTable.add(enumType.toString());
     value.collectNames(nameTable);
+  }
+
+  public ArkName getEnumType() {
+    return enumType;
+  }
+
+  public void setEnumType(ArkName enumType) {
+    this.enumType = enumType;
   }
 
 }

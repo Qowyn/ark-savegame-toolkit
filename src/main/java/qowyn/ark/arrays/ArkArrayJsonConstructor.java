@@ -1,12 +1,12 @@
 package qowyn.ark.arrays;
 
-import javax.json.JsonValue;
+import javax.json.JsonArray;
 
-import qowyn.ark.types.ArkName;
+import qowyn.ark.properties.PropertyArray;
 
 @FunctionalInterface
 public interface ArkArrayJsonConstructor {
 
-  public ArkArray<?> apply(JsonValue v, int dataSize, ArkName propertyName);
+  public ArkArray<?> apply(JsonArray a, PropertyArray property);
 
 }

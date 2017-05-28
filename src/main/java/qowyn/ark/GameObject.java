@@ -18,6 +18,7 @@ import javax.json.JsonString;
 import javax.json.JsonValue;
 
 import qowyn.ark.data.ExtraData;
+import qowyn.ark.data.ExtraDataBlob;
 import qowyn.ark.data.ExtraDataRegistry;
 import qowyn.ark.properties.Property;
 import qowyn.ark.properties.PropertyRegistry;
@@ -327,19 +328,26 @@ public class GameObject implements PropertyContainer, NameContainer {
     int nextOffset = (next != null) ? propertiesBlockOffset + next.propertiesOffset : archive.limit();
 
     archive.position(offset);
+    int position = offset;
 
     properties.clear();
     try {
       Property<?> property = PropertyRegistry.readProperty(archive);
 
       while (property != null) {
+        position = archive.position();
         properties.add(property);
         property = PropertyRegistry.readProperty(archive);
       }
     } catch (UnreadablePropertyException upe) {
-      archive.unknownData();
       archive.unknownNames();
-      // Stop reading and ignore possible extra data for now, needs a new field in ExtraDataHandler
+
+      archive.position(position);
+      ExtraDataBlob blob = new ExtraDataBlob();
+      blob.setData(archive.getBytes(nextOffset - position));
+      extraData = blob;
+
+      System.err.println("Error while reading property at " + Integer.toHexString(position) + " from GameObject " + id + " caused by:");
       upe.printStackTrace();
       return;
     }
