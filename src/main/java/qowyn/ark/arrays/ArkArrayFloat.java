@@ -38,6 +38,11 @@ public class ArkArrayFloat extends ArrayList<Float> implements ArkArray<Float> {
   }
 
   @Override
+  public ArkName getType() {
+    return TYPE;
+  }
+
+  @Override
   public int calculateSize(boolean nameTable) {
     return Integer.BYTES + size() * Float.BYTES;
   }

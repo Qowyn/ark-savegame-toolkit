@@ -186,8 +186,8 @@ public class ArkSavegame implements GameObjectContainer {
   protected void readBinaryDataFiles(ArkArchive archive, ReadingOptions options) {
     int count = archive.getInt();
 
-    if (options.getDataFiles()) {
     dataFiles.clear();
+    if (options.getDataFiles()) {
       for (int n = 0; n < count; n++) {
         dataFiles.add(archive.getString());
       }
@@ -202,8 +202,8 @@ public class ArkSavegame implements GameObjectContainer {
   protected void readBinaryEmbeddedData(ArkArchive archive, ReadingOptions options) {
     int count = archive.getInt();
 
-    if (options.getEmbeddedData()) {
     embeddedData.clear();
+    if (options.getEmbeddedData()) {
       for (int n = 0; n < count; n++) {
         embeddedData.add(new EmbeddedData(archive));
       }
@@ -319,6 +319,7 @@ public class ArkSavegame implements GameObjectContainer {
       objects.forEach(o -> o.collectNames(nameTable));
 
       if (oldNameList != null) {
+        size += 4 + ((ListAppendingSet<String>) nameTable).getList().stream().mapToInt(ArkArchive::getStringLength).sum();
       } else {
         size += 4 + nameTable.stream().mapToInt(ArkArchive::getStringLength).sum();
       }
@@ -342,6 +343,7 @@ public class ArkSavegame implements GameObjectContainer {
       ArkArchive archive = new ArkArchive(buffer);
 
       if (nameTable != null) {
+        archive.setNameTable(oldNameList != null ? ((ListAppendingSet<String>) nameTable).getList() : new ArrayList<>(nameTable));
       }
 
       writeBinaryHeader(archive);
@@ -392,6 +394,7 @@ public class ArkSavegame implements GameObjectContainer {
 
   protected void writeBinaryDataFilesObjectMap(ArkArchive archive) {
     archive.putInt(dataFilesObjectMap.size());
+    for (Integer key : dataFilesObjectMap.keySet()) {
       archive.putInt(key.intValue());
       archive.putInt(dataFilesObjectMap.get(key).size());
       dataFilesObjectMap.get(key).forEach(archive::putString);
@@ -527,6 +530,7 @@ public class ArkSavegame implements GameObjectContainer {
       JsonObject dataFilesObjectMapObject = object.getJsonObject("dataFilesObjectMap");
       if (dataFilesObjectMapObject != null) {
         dataFilesObjectMapObject.forEach((key, list) -> {
+          JsonArray jsonList = (JsonArray) list;
           List<String> objectNameList = new ArrayList<>(jsonList.size());
           jsonList.getValuesAs(JsonString.class).forEach(jsonString -> objectNameList.add(jsonString.getString()));
           dataFilesObjectMap.put(Integer.valueOf(key), objectNameList);

@@ -6,6 +6,7 @@ import javax.json.JsonObject;
 import javax.json.JsonObjectBuilder;
 
 import qowyn.ark.ArkArchive;
+import qowyn.ark.types.ArkName;
 
 public class PropertyUnknown extends PropertyBase<byte[]> {
 
@@ -13,19 +14,28 @@ public class PropertyUnknown extends PropertyBase<byte[]> {
 
   private static final Base64.Encoder ENCODER = Base64.getEncoder();
 
-  public PropertyUnknown(ArkArchive archive, PropertyArgs args) {
-    super(archive, args);
+  private final ArkName type;
+
+  public PropertyUnknown(ArkArchive archive, ArkName name, ArkName type) {
+    super(archive, name);
+    this.type = type;
     value = archive.getBytes(dataSize);
   }
 
   public PropertyUnknown(JsonObject o) {
     super(o);
+    this.type = ArkName.from(o.getString("type"));
     value = DECODER.decode(o.getString("value"));
   }
 
   @Override
   public Class<byte[]> getValueClass() {
     return byte[].class;
+  }
+
+  @Override
+  public ArkName getType() {
+    return type;
   }
 
   @Override

@@ -10,16 +10,16 @@ public class PropertyInt8 extends PropertyBase<Byte> {
 
   public static final ArkName TYPE = ArkName.constantPlain("Int8Property");
 
-  public PropertyInt8(String name, ArkName typeName, byte value) {
-    super(ArkName.from(name), typeName, 0, value);
+  public PropertyInt8(String name, byte value) {
+    super(ArkName.from(name), 0, value);
   }
 
-  public PropertyInt8(String name, ArkName typeName, int index, byte value) {
-    super(ArkName.from(name), typeName, index, value);
+  public PropertyInt8(String name, int index, byte value) {
+    super(ArkName.from(name), index, value);
   }
 
-  public PropertyInt8(ArkArchive archive, PropertyArgs args) {
-    super(archive, args);
+  public PropertyInt8(ArkArchive archive, ArkName name) {
+    super(archive, name);
     value = archive.getByte();
   }
 
@@ -31,6 +31,11 @@ public class PropertyInt8 extends PropertyBase<Byte> {
   @Override
   public Class<Byte> getValueClass() {
     return Byte.class;
+  }
+
+  @Override
+  public ArkName getType() {
+    return TYPE;
   }
 
   @Override

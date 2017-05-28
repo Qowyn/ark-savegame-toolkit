@@ -16,18 +16,28 @@ public class PropertyByte extends PropertyBase<ArkByteValue> {
 
   private ArkName enumType;
 
-  public PropertyByte(String name, ArkName typeName, ArkByteValue value, ArkName enumType) {
-    super(ArkName.from(name), typeName, 0, value);
+  public PropertyByte(String name, ArkName value, ArkName enumType) {
+    super(ArkName.from(name), 0, new ArkByteValue(value));
     this.enumType = enumType;
   }
 
-  public PropertyByte(String name, ArkName typeName, int index, ArkByteValue value, ArkName enumType) {
-    super(ArkName.from(name), typeName, index, value);
+  public PropertyByte(String name, int index, ArkName value, ArkName enumType) {
+    super(ArkName.from(name), index, new ArkByteValue(value));
     this.enumType = enumType;
   }
 
-  public PropertyByte(ArkArchive archive, PropertyArgs args) {
-    super(archive, args);
+  public PropertyByte(String name, byte value) {
+    super(ArkName.from(name), 0, new ArkByteValue(value));
+    this.enumType = ArkName.NAME_NONE;
+  }
+
+  public PropertyByte(String name, int index, byte value) {
+    super(ArkName.from(name), index, new ArkByteValue(value));
+    this.enumType = ArkName.NAME_NONE;
+  }
+
+  public PropertyByte(ArkArchive archive, ArkName name) {
+    super(archive, name);
     enumType = archive.getName();
     value = new ArkByteValue(archive, !enumType.equals(ArkName.NAME_NONE));
   }
@@ -35,12 +45,17 @@ public class PropertyByte extends PropertyBase<ArkByteValue> {
   public PropertyByte(JsonObject o) {
     super(o);
     enumType = ArkName.from(o.getString("enum", ArkName.NAME_NONE.toString()));
-    value = new ArkByteValue(o);
+    value = new ArkByteValue(o.get("value"));
   }
 
   @Override
   public Class<ArkByteValue> getValueClass() {
     return ArkByteValue.class;
+  }
+
+  @Override
+  public ArkName getType() {
+    return TYPE;
   }
 
   @Override

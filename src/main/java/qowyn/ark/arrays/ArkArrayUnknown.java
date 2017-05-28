@@ -8,6 +8,7 @@ import javax.json.JsonValue;
 
 import qowyn.ark.ArkArchive;
 import qowyn.ark.json.SimpleJsonString;
+import qowyn.ark.types.ArkName;
 
 public class ArkArrayUnknown extends AbstractList<Byte> implements ArkArray<Byte> {
 
@@ -17,17 +18,26 @@ public class ArkArrayUnknown extends AbstractList<Byte> implements ArkArray<Byte
 
   private final byte[] value;
 
-  public ArkArrayUnknown(ArkArchive archive, int size) {
+  private final ArkName type;
+
+  public ArkArrayUnknown(ArkArchive archive, int size, ArkName type) {
     value = archive.getBytes(size);
+    this.type = type;
   }
 
-  public ArkArrayUnknown(String v) {
+  public ArkArrayUnknown(String v, ArkName type) {
     value = DECODER.decode(v);
+    this.type = type;
   }
 
   @Override
   public Class<Byte> getValueClass() {
     return Byte.class;
+  }
+
+  @Override
+  public ArkName getType() {
+    return type;
   }
 
   @Override

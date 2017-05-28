@@ -72,6 +72,11 @@ public class ArkArrayStruct extends ArrayList<Struct> implements ArkArray<Struct
   }
 
   @Override
+  public ArkName getType() {
+    return TYPE;
+  }
+
+  @Override
   public int calculateSize(boolean nameTable) {
     int size = Integer.BYTES;
 

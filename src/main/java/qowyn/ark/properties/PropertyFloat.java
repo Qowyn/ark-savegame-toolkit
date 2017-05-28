@@ -14,16 +14,16 @@ public class PropertyFloat extends PropertyBase<Float> {
 
   public static final ArkName TYPE = ArkName.constantPlain("FloatProperty");
 
-  public PropertyFloat(String name, ArkName typeName, float value) {
-    super(ArkName.from(name), typeName, 0, value);
+  public PropertyFloat(String name, float value) {
+    super(ArkName.from(name), 0, value);
   }
 
-  public PropertyFloat(String name, ArkName typeName, int index, float value) {
-    super(ArkName.from(name), typeName, index, value);
+  public PropertyFloat(String name, int index, float value) {
+    super(ArkName.from(name), index, value);
   }
 
-  public PropertyFloat(ArkArchive archive, PropertyArgs args) {
-    super(archive, args);
+  public PropertyFloat(ArkArchive archive, ArkName name) {
+    super(archive, name);
     value = archive.getFloat();
   }
 
@@ -42,6 +42,11 @@ public class PropertyFloat extends PropertyBase<Float> {
   @Override
   public Class<Float> getValueClass() {
     return Float.class;
+  }
+
+  @Override
+  public ArkName getType() {
+    return TYPE;
   }
 
   @Override

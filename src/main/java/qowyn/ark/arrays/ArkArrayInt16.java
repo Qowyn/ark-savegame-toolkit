@@ -14,9 +14,7 @@ import qowyn.ark.types.ArkName;
 
 public class ArkArrayInt16 extends ArrayList<Short> implements ArkArray<Short> {
 
-  public static final ArkName TYPE_SIGNED = ArkName.constantPlain("Int16Property");
-
-  public static final ArkName TYPE_UNSIGNED = ArkName.constantPlain("UInt16Property");
+  public static final ArkName TYPE = ArkName.constantPlain("Int16Property");
 
   private static final long serialVersionUID = 1L;
 
@@ -37,6 +35,11 @@ public class ArkArrayInt16 extends ArrayList<Short> implements ArkArray<Short> {
   @Override
   public Class<Short> getValueClass() {
     return Short.class;
+  }
+
+  @Override
+  public ArkName getType() {
+    return TYPE;
   }
 
   @Override

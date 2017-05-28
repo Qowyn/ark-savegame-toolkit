@@ -22,8 +22,6 @@ import qowyn.ark.types.ArkName;
  */
 public class ArkArrayByteValue extends ArrayList<ArkByteValue> implements ArkArray<ArkByteValue> {
 
-  public static final ArkName TYPE = ArkName.constantPlain("ByteProperty");
-
   private static final long serialVersionUID = 1L;
 
   public ArkArrayByteValue() {}
@@ -47,6 +45,11 @@ public class ArkArrayByteValue extends ArrayList<ArkByteValue> implements ArkArr
   @Override
   public Class<ArkByteValue> getValueClass() {
     return ArkByteValue.class;
+  }
+
+  @Override
+  public ArkName getType() {
+    return ArkArrayByteHandler.TYPE;
   }
 
   @Override

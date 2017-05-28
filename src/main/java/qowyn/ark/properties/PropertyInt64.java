@@ -8,20 +8,18 @@ import qowyn.ark.types.ArkName;
 
 public class PropertyInt64 extends PropertyBase<Long> {
 
-  public static final ArkName TYPE_SIGNED = ArkName.constantPlain("Int64Property");
+  public static final ArkName TYPE = ArkName.constantPlain("Int64Property");
 
-  public static final ArkName TYPE_UNSIGNED = ArkName.constantPlain("UInt64Property");
-
-  public PropertyInt64(String name, ArkName typeName, long value) {
-    super(ArkName.from(name), typeName, 0, value);
+  public PropertyInt64(String name, long value) {
+    super(ArkName.from(name), 0, value);
   }
 
-  public PropertyInt64(String name, ArkName typeName, int index, long value) {
-    super(ArkName.from(name), typeName, index, value);
+  public PropertyInt64(String name, int index, long value) {
+    super(ArkName.from(name), index, value);
   }
 
-  public PropertyInt64(ArkArchive archive, PropertyArgs args) {
-    super(archive, args);
+  public PropertyInt64(ArkArchive archive, ArkName name) {
+    super(archive, name);
     value = archive.getLong();
   }
 
@@ -33,6 +31,11 @@ public class PropertyInt64 extends PropertyBase<Long> {
   @Override
   public Class<Long> getValueClass() {
     return Long.class;
+  }
+
+  @Override
+  public ArkName getType() {
+    return TYPE;
   }
 
   @Override

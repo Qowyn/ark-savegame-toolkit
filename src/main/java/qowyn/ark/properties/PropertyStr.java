@@ -10,16 +10,16 @@ public class PropertyStr extends PropertyBase<String> {
 
   public static final ArkName TYPE = ArkName.constantPlain("StrProperty");
 
-  public PropertyStr(String name, ArkName typeName, String value) {
-    super(ArkName.from(name), typeName, 0, value);
+  public PropertyStr(String name, String value) {
+    super(ArkName.from(name), 0, value);
   }
 
-  public PropertyStr(String name, ArkName typeName, int index, String value) {
-    super(ArkName.from(name), typeName, index, value);
+  public PropertyStr(String name, int index, String value) {
+    super(ArkName.from(name), index, value);
   }
 
-  public PropertyStr(ArkArchive archive, PropertyArgs args) {
-    super(archive, args);
+  public PropertyStr(ArkArchive archive, ArkName name) {
+    super(archive, name);
     value = archive.getString();
   }
 
@@ -31,6 +31,11 @@ public class PropertyStr extends PropertyBase<String> {
   @Override
   public Class<String> getValueClass() {
     return String.class;
+  }
+
+  @Override
+  public ArkName getType() {
+    return TYPE;
   }
 
   @Override

@@ -38,6 +38,11 @@ public class ArkArrayDouble extends ArrayList<Double> implements ArkArray<Double
   }
 
   @Override
+  public ArkName getType() {
+    return TYPE;
+  }
+
+  @Override
   public int calculateSize(boolean nameTable) {
     return Integer.BYTES + size() * Double.BYTES;
   }

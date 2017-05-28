@@ -16,16 +16,16 @@ public class PropertyText extends PropertyBase<String> {
 
   private static final Base64.Encoder ENCODER = Base64.getEncoder();
 
-  public PropertyText(String name, ArkName typeName, String value) {
-    super(ArkName.from(name), typeName, 0, value);
+  public PropertyText(String name, String value) {
+    super(ArkName.from(name), 0, value);
   }
 
-  public PropertyText(String name, ArkName typeName, int index, String value) {
-    super(ArkName.from(name), typeName, index, value);
+  public PropertyText(String name, int index, String value) {
+    super(ArkName.from(name), index, value);
   }
 
-  public PropertyText(ArkArchive archive, PropertyArgs args) {
-    super(archive, args);
+  public PropertyText(ArkArchive archive, ArkName name) {
+    super(archive, name);
     value = ENCODER.encodeToString(archive.getBytes(dataSize));
   }
 
@@ -37,6 +37,11 @@ public class PropertyText extends PropertyBase<String> {
   @Override
   public Class<String> getValueClass() {
     return String.class;
+  }
+
+  @Override
+  public ArkName getType() {
+    return TYPE;
   }
 
   @Override

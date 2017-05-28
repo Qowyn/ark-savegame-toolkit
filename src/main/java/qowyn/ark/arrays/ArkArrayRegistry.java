@@ -22,14 +22,14 @@ public final class ArkArrayRegistry {
   }
 
   static {
-    addArray(ArkArrayInt8.TYPE_SIGNED, ArkArrayInt8::new, ArkArrayInt8::new);
-    addArray(ArkArrayInt8.TYPE_UNSIGNED, ArkArrayByteHandler::create, ArkArrayByteHandler::create);
-    addArray(ArkArrayInt16.TYPE_SIGNED, ArkArrayInt16::new, ArkArrayInt16::new);
-    addArray(ArkArrayInt16.TYPE_UNSIGNED, ArkArrayInt16::new, ArkArrayInt16::new);
-    addArray(ArkArrayInteger.TYPE_SIGNED, ArkArrayInteger::new, ArkArrayInteger::new);
-    addArray(ArkArrayInteger.TYPE_UNSIGNED, ArkArrayInteger::new, ArkArrayInteger::new);
-    addArray(ArkArrayLong.TYPE_SIGNED, ArkArrayLong::new, ArkArrayLong::new);
-    addArray(ArkArrayLong.TYPE_UNSIGNED, ArkArrayLong::new, ArkArrayLong::new);
+    addArray(ArkArrayInt8.TYPE, ArkArrayInt8::new, ArkArrayInt8::new);
+    addArray(ArkArrayByteHandler.TYPE, ArkArrayByteHandler::create, ArkArrayByteHandler::create);
+    addArray(ArkArrayInt16.TYPE, ArkArrayInt16::new, ArkArrayInt16::new);
+    addArray(ArkArrayUInt16.TYPE, ArkArrayUInt16::new, ArkArrayUInt16::new);
+    addArray(ArkArrayInt.TYPE, ArkArrayInt::new, ArkArrayInt::new);
+    addArray(ArkArrayUInt32.TYPE, ArkArrayUInt32::new, ArkArrayUInt32::new);
+    addArray(ArkArrayInt64.TYPE, ArkArrayInt64::new, ArkArrayInt64::new);
+    addArray(ArkArrayUInt64.TYPE, ArkArrayUInt64::new, ArkArrayUInt64::new);
     addArray(ArkArrayFloat.TYPE, ArkArrayFloat::new, ArkArrayFloat::new);
     addArray(ArkArrayDouble.TYPE, ArkArrayDouble::new, ArkArrayDouble::new);
     addArray(ArkArrayBool.TYPE, ArkArrayBool::new, ArkArrayBool::new);
@@ -39,19 +39,19 @@ public final class ArkArrayRegistry {
     addArray(ArkArrayStruct.TYPE, ArkArrayStruct::new, ArkArrayStruct::new);
   }
 
-  public static ArkArray<?> read(ArkArchive archive, PropertyArray property) {
-    if (ARRAY_TYPE_MAP.containsKey(property.getArrayType())) {
-      return ARRAY_TYPE_MAP.get(property.getArrayType()).apply(archive, property);
+  public static ArkArray<?> read(ArkArchive archive, ArkName arrayType, PropertyArray property) {
+    if (ARRAY_TYPE_MAP.containsKey(arrayType)) {
+      return ARRAY_TYPE_MAP.get(arrayType).apply(archive, property);
     } else {
-      throw new UnreadablePropertyException("Unknown Array Type " + property.getArrayType() + " at " + Integer.toHexString(archive.position()));
+      throw new UnreadablePropertyException("Unknown Array Type " + arrayType + " at " + Integer.toHexString(archive.position()));
     }
   }
 
-  public static ArkArray<?> read(JsonArray a, PropertyArray property) {
-    if (ARRAY_JSON_TYPE_MAP.containsKey(property.getArrayType())) {
-      return ARRAY_JSON_TYPE_MAP.get(property.getArrayType()).apply(a, property);
+  public static ArkArray<?> read(JsonArray a, ArkName arrayType, PropertyArray property) {
+    if (ARRAY_JSON_TYPE_MAP.containsKey(arrayType)) {
+      return ARRAY_JSON_TYPE_MAP.get(arrayType).apply(a, property);
     } else {
-      throw new UnreadablePropertyException("Unknown Array Type " + property.getArrayType());
+      throw new UnreadablePropertyException("Unknown Array Type " + arrayType);
     }
   }
 

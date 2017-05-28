@@ -12,36 +12,39 @@ import qowyn.ark.ArkArchive;
 import qowyn.ark.properties.PropertyArray;
 import qowyn.ark.types.ArkName;
 
-public class ArkArrayLong extends ArrayList<Long> implements ArkArray<Long> {
+public class ArkArrayInt extends ArrayList<Integer> implements ArkArray<Integer> {
 
-  public static final ArkName TYPE_SIGNED = ArkName.constantPlain("Int64Property");
-
-  public static final ArkName TYPE_UNSIGNED = ArkName.constantPlain("UInt64Property");
+  public static final ArkName TYPE = ArkName.constantPlain("IntProperty");
 
   private static final long serialVersionUID = 1L;
 
-  public ArkArrayLong() {}
+  public ArkArrayInt() {}
 
-  public ArkArrayLong(ArkArchive archive, PropertyArray property) {
+  public ArkArrayInt(ArkArchive archive, PropertyArray property) {
     int size = archive.getInt();
 
     for (int n = 0; n < size; n++) {
-      add(archive.getLong());
+      add(archive.getInt());
     }
   }
 
-  public ArkArrayLong(JsonArray a, PropertyArray property) {
-    a.getValuesAs(JsonNumber.class).forEach(n -> this.add(n.longValue()));
+  public ArkArrayInt(JsonArray a, PropertyArray property) {
+    a.getValuesAs(JsonNumber.class).forEach(n -> this.add(n.intValue()));
   }
 
   @Override
-  public Class<Long> getValueClass() {
-    return Long.class;
+  public Class<Integer> getValueClass() {
+    return Integer.class;
+  }
+
+  @Override
+  public ArkName getType() {
+    return TYPE;
   }
 
   @Override
   public int calculateSize(boolean nameTable) {
-    return Integer.BYTES + size() * Long.BYTES;
+    return Integer.BYTES + size() * Integer.BYTES;
   }
 
   @Override
@@ -57,7 +60,7 @@ public class ArkArrayLong extends ArrayList<Long> implements ArkArray<Long> {
   public void write(ArkArchive archive) {
     archive.putInt(size());
 
-    this.forEach(archive::putLong);
+    this.forEach(archive::putInt);
   }
 
   @Override

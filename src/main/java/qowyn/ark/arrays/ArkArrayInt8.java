@@ -14,9 +14,7 @@ import qowyn.ark.types.ArkName;
 
 public class ArkArrayInt8 extends ArrayList<Byte> implements ArkArray<Byte> {
 
-  public static final ArkName TYPE_SIGNED = ArkName.constantPlain("Int8Property");
-
-  public static final ArkName TYPE_UNSIGNED = ArkName.constantPlain("ByteProperty");
+  public static final ArkName TYPE = ArkName.constantPlain("Int8Property");
 
   private static final long serialVersionUID = 1L;
 
@@ -37,6 +35,11 @@ public class ArkArrayInt8 extends ArrayList<Byte> implements ArkArray<Byte> {
   @Override
   public Class<Byte> getValueClass() {
     return Byte.class;
+  }
+
+  @Override
+  public ArkName getType() {
+    return TYPE;
   }
 
   @Override

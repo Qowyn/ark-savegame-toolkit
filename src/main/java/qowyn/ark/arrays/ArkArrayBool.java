@@ -38,6 +38,11 @@ public class ArkArrayBool extends ArrayList<Boolean> implements ArkArray<Boolean
   }
 
   @Override
+  public ArkName getType() {
+    return TYPE;
+  }
+
+  @Override
   public int calculateSize(boolean nameTable) {
     return Integer.BYTES + size();
   }

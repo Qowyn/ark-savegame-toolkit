@@ -38,6 +38,11 @@ public class ArkArrayName extends ArrayList<ArkName> implements ArkArray<ArkName
   }
 
   @Override
+  public ArkName getType() {
+    return TYPE;
+  }
+
+  @Override
   public int calculateSize(boolean nameTable) {
     int size = Integer.BYTES;
 

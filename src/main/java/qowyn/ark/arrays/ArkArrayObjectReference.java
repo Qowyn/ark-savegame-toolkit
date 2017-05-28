@@ -39,6 +39,11 @@ public class ArkArrayObjectReference extends ArrayList<ObjectReference> implemen
   }
 
   @Override
+  public ArkName getType() {
+    return TYPE;
+  }
+
+  @Override
   public int calculateSize(boolean nameTable) {
     int size = Integer.BYTES;
 

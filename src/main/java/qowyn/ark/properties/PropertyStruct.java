@@ -17,18 +17,18 @@ public class PropertyStruct extends PropertyBase<Struct> {
 
   private ArkName structType;
 
-  public PropertyStruct(String name, ArkName typeName, Struct value, ArkName structType) {
-    super(ArkName.from(name), typeName, 0, value);
+  public PropertyStruct(String name, Struct value, ArkName structType) {
+    super(ArkName.from(name), 0, value);
     this.structType = structType;
   }
 
-  public PropertyStruct(String name, ArkName typeName, int index, Struct value, ArkName structType) {
-    super(ArkName.from(name), typeName, index, value);
+  public PropertyStruct(String name, int index, Struct value, ArkName structType) {
+    super(ArkName.from(name), index, value);
     this.structType = structType;
   }
 
-  public PropertyStruct(ArkArchive archive, PropertyArgs args) {
-    super(archive, args);
+  public PropertyStruct(ArkArchive archive, ArkName name) {
+    super(archive, name);
     structType = archive.getName();
 
     int position = archive.position();
@@ -63,6 +63,11 @@ public class PropertyStruct extends PropertyBase<Struct> {
   @Override
   public Class<Struct> getValueClass() {
     return Struct.class;
+  }
+
+  @Override
+  public ArkName getType() {
+    return TYPE;
   }
 
   @Override

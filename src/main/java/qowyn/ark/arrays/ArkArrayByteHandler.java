@@ -6,8 +6,11 @@ import javax.json.JsonValue.ValueType;
 import qowyn.ark.ArkArchive;
 import qowyn.ark.properties.PropertyArray;
 import qowyn.ark.properties.UnreadablePropertyException;
+import qowyn.ark.types.ArkName;
 
 public class ArkArrayByteHandler {
+
+  public static final ArkName TYPE = ArkName.constantPlain("ByteProperty");
 
   public static ArkArray<?> create(ArkArchive archive, PropertyArray property) {
     int size = archive.getInt();

@@ -14,16 +14,16 @@ public class PropertyDouble extends PropertyBase<Double> {
 
   public static final ArkName TYPE = ArkName.constantPlain("DoubleProperty");
 
-  public PropertyDouble(String name, ArkName typeName, double value) {
-    super(ArkName.from(name), typeName, 0, value);
+  public PropertyDouble(String name, double value) {
+    super(ArkName.from(name), 0, value);
   }
 
-  public PropertyDouble(String name, ArkName typeName, int index, double value) {
-    super(ArkName.from(name), typeName, index, value);
+  public PropertyDouble(String name, int index, double value) {
+    super(ArkName.from(name), index, value);
   }
 
-  public PropertyDouble(ArkArchive archive, PropertyArgs args) {
-    super(archive, args);
+  public PropertyDouble(ArkArchive archive, ArkName name) {
+    super(archive, name);
     value = archive.getDouble();
   }
 
@@ -42,6 +42,11 @@ public class PropertyDouble extends PropertyBase<Double> {
   @Override
   public Class<Double> getValueClass() {
     return Double.class;
+  }
+
+  @Override
+  public ArkName getType() {
+    return TYPE;
   }
 
   @Override

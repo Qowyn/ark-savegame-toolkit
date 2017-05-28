@@ -18,13 +18,9 @@ public interface Property<T> extends NameContainer {
 
   public void setNameString(String nameString);
 
-  public ArkName getTypeName();
+  public ArkName getType();
 
   public String getTypeString();
-
-  public void setTypeName(ArkName typeName);
-
-  public void setTypeString(String typeString);
 
   public int getDataSize();
 

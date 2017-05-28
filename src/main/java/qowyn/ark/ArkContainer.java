@@ -16,7 +16,7 @@ import javax.json.JsonStructure;
 import javax.json.JsonValue.ValueType;
 import javax.json.stream.JsonGenerator;
 
-import qowyn.ark.arrays.ArkArrayInt8;
+import qowyn.ark.arrays.ArkArrayUInt8;
 
 public class ArkContainer implements GameObjectContainer {
 
@@ -51,7 +51,7 @@ public class ArkContainer implements GameObjectContainer {
     }
   }
 
-  public ArkContainer(ArkArrayInt8 source) {
+  public ArkContainer(ArkArrayUInt8 source) {
     ByteBuffer buffer = ByteBuffer.allocateDirect(source.size());
 
     source.forEach(buffer::put);
@@ -169,7 +169,7 @@ public class ArkContainer implements GameObjectContainer {
     return objects;
   }
 
-  public ArkArrayInt8 toByteArray() {
+  public ArkArrayUInt8 toByteArray() {
     int size = Integer.BYTES;
 
     size += objects.stream().mapToInt(object -> object.getSize(false)).sum();
@@ -191,7 +191,7 @@ public class ArkContainer implements GameObjectContainer {
       object.writeProperties(archive, 0);
     }
 
-    ArkArrayInt8 result = new ArkArrayInt8();
+    ArkArrayUInt8 result = new ArkArrayUInt8();
 
     buffer.clear();
 
