@@ -2,6 +2,7 @@ package qowyn.ark.properties;
 
 import javax.json.JsonObject;
 import javax.json.JsonObjectBuilder;
+import javax.json.JsonValue.ValueType;
 
 import qowyn.ark.ArkArchive;
 import qowyn.ark.types.ArkName;
@@ -25,7 +26,11 @@ public class PropertyStr extends PropertyBase<String> {
 
   public PropertyStr(JsonObject o) {
     super(o);
-    value = o.getString("value");
+    if (o.get("value").getValueType() == ValueType.STRING) {
+      value = o.getString("value");
+    } else {
+      value = null;
+    }
   }
 
   @Override
@@ -40,7 +45,11 @@ public class PropertyStr extends PropertyBase<String> {
 
   @Override
   protected void serializeValue(JsonObjectBuilder job) {
-    job.add("value", value);
+    if (value != null) {
+      job.add("value", value);
+    } else {
+      job.addNull("value");
+    }
   }
 
   @Override

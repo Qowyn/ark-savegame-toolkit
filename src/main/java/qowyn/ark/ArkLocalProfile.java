@@ -25,9 +25,13 @@ public class ArkLocalProfile implements PropertyContainer, GameObjectContainer {
 
   private static final Base64.Decoder DECODER = Base64.getDecoder();
 
+  private static final int UNKNOWN_DATA_2_SIZE = 0xc;
+
   private int localProfileVersion;
 
   private byte[] unknownData;
+
+  private byte[] unknownData2;
 
   private final ArrayList<GameObject> objects = new ArrayList<>();
 
@@ -69,13 +73,17 @@ public class ArkLocalProfile implements PropertyContainer, GameObjectContainer {
   public void readBinary(ArkArchive archive) {
     localProfileVersion = archive.getInt();
 
-    if (localProfileVersion != 1) {
+    if (localProfileVersion != 1 && localProfileVersion != 3) {
       throw new UnsupportedOperationException("Unknown Profile Version " + localProfileVersion);
     }
 
     int unknownDataSize = archive.getInt();
 
     unknownData = archive.getBytes(unknownDataSize);
+
+    if (localProfileVersion == 3) {
+      unknownData2 = archive.getBytes(UNKNOWN_DATA_2_SIZE);
+    }
 
     int objectCount = archive.getInt();
 
@@ -97,9 +105,23 @@ public class ArkLocalProfile implements PropertyContainer, GameObjectContainer {
   }
 
   public void writeBinary(String fileName, WritingOptions options) throws FileNotFoundException, IOException {
+    if (localProfileVersion == 3) {
+      if (unknownData2 == null) {
+        unknownData2 = new byte[UNKNOWN_DATA_2_SIZE];
+      } else if (unknownData2.length < UNKNOWN_DATA_2_SIZE) {
+        byte[] temp = new byte[UNKNOWN_DATA_2_SIZE];
+        System.arraycopy(unknownData2, 0, temp, 0, unknownData2.length);
+        unknownData2 = temp;
+      }
+    }
+
     int size = Integer.BYTES * 3;
 
     size += unknownData.length;
+
+    if (localProfileVersion == 3) {
+      size += 12;
+    }
 
     size += objects.stream().mapToInt(object -> object.getSize(false)).sum();
 
@@ -122,6 +144,10 @@ public class ArkLocalProfile implements PropertyContainer, GameObjectContainer {
 
       archive.putInt(unknownData.length);
       archive.putBytes(unknownData);
+
+      if (localProfileVersion == 3) {
+        archive.putBytes(unknownData2, 0, UNKNOWN_DATA_2_SIZE);
+      }
 
       archive.putInt(objects.size());
 
@@ -165,6 +191,11 @@ public class ArkLocalProfile implements PropertyContainer, GameObjectContainer {
     if (unknownDataString != null) {
       unknownData = DECODER.decode(unknownDataString.getString());
     }
+
+    JsonString unknownData2String = object.getJsonString("unknownData2");
+    if (unknownData2String != null) {
+      unknownData2 = DECODER.decode(unknownData2String.getString());
+    }
   }
 
   public JsonObject toJson() {
@@ -186,6 +217,7 @@ public class ArkLocalProfile implements PropertyContainer, GameObjectContainer {
     }
 
     job.add("unknownData", ENCODER.encodeToString(unknownData));
+    job.add("unknownData2", ENCODER.encodeToString(unknownData2));
 
     return job.build();
   }
