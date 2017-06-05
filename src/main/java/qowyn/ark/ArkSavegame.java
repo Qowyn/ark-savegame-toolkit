@@ -7,11 +7,13 @@ import java.nio.channels.FileChannel;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ForkJoinPool;
@@ -50,7 +52,7 @@ public class ArkSavegame implements GameObjectContainer {
 
   protected final ArrayList<EmbeddedData> embeddedData = new ArrayList<>();
 
-  protected final Map<Integer, List<String>> dataFilesObjectMap = new LinkedHashMap<>();
+  protected final Map<Integer, List<String[]>> dataFilesObjectMap = new LinkedHashMap<>();
 
   protected final ArrayList<GameObject> objects = new ArrayList<>();
 
@@ -222,11 +224,11 @@ public class ArkSavegame implements GameObjectContainer {
       for (int n = 0; n < dataFilesCount; n++) {
         int level = archive.getInt();
         int count = archive.getInt();
-        List<String> names = new ArrayList<>(count);
+        String[] names = new String[count];
         for (int index = 0; index < count; index++) {
-          names.add(archive.getString());
+          names[index] = archive.getString();
         }
-        dataFilesObjectMap.put(level, names);
+        dataFilesObjectMap.computeIfAbsent(level, l -> new ArrayList<>()).add(names);
       }
     } else {
       archive.unknownData();
@@ -395,9 +397,13 @@ public class ArkSavegame implements GameObjectContainer {
   protected void writeBinaryDataFilesObjectMap(ArkArchive archive) {
     archive.putInt(dataFilesObjectMap.size());
     for (Integer key : dataFilesObjectMap.keySet()) {
-      archive.putInt(key.intValue());
-      archive.putInt(dataFilesObjectMap.get(key).size());
-      dataFilesObjectMap.get(key).forEach(archive::putString);
+      for (String[] namesList : dataFilesObjectMap.get(key)) {
+        archive.putInt(key.intValue());
+        archive.putInt(namesList.length);
+        for (String name : namesList) {
+          archive.putString(name);
+        }
+      }
     }
   }
 
@@ -470,7 +476,14 @@ public class ArkSavegame implements GameObjectContainer {
   }
 
   protected int calculateDataFilesObjectMapSize() {
-    return 4 + dataFilesObjectMap.entrySet().stream().mapToInt(entry -> 8 + entry.getValue().stream().mapToInt(ArkArchive::getStringLength).sum()).sum();
+    int size = 4;
+    for (List<String[]> namesListList : dataFilesObjectMap.values()) {
+      size += namesListList.size() * 8;
+      for (String[] namesList : namesListList) {
+        size += Arrays.stream(namesList).mapToInt(ArkArchive::getStringLength).sum();
+      }
+    }
+    return size;
   }
 
   protected int calculateObjectsSize(boolean nameTable) {
@@ -530,9 +543,16 @@ public class ArkSavegame implements GameObjectContainer {
       JsonObject dataFilesObjectMapObject = object.getJsonObject("dataFilesObjectMap");
       if (dataFilesObjectMapObject != null) {
         dataFilesObjectMapObject.forEach((key, list) -> {
-          JsonArray jsonList = (JsonArray) list;
-          List<String> objectNameList = new ArrayList<>(jsonList.size());
-          jsonList.getValuesAs(JsonString.class).forEach(jsonString -> objectNameList.add(jsonString.getString()));
+          List<JsonArray> namesListList = ((JsonArray) list).getValuesAs(JsonArray.class);
+          List<String[]> objectNameList = new ArrayList<>(namesListList.size());
+          for (JsonArray namesArray : namesListList) {
+            List<JsonString> namesList = namesArray.getValuesAs(JsonString.class);
+            String[] names = new String[namesList.size()];
+            for (int index = 0; index < names.length; index++) {
+              names[index] = namesList.get(index).getString();
+            }
+            objectNameList.add(names);
+          }
           dataFilesObjectMap.put(Integer.valueOf(key), objectNameList);
         });
       }
@@ -596,11 +616,17 @@ public class ArkSavegame implements GameObjectContainer {
     if (!dataFilesObjectMap.isEmpty()) {
       generator.writeStartObject("dataFilesObjectMap");
 
-      dataFilesObjectMap.forEach((key, list) -> {
-        generator.writeStartArray(key.toString());
-        list.forEach(generator::write);
+      for (Entry<Integer, List<String[]>> entry : dataFilesObjectMap.entrySet()) {
+        generator.writeStartArray(entry.getKey().toString());
+        for (String[] namesList : entry.getValue()) {
+          generator.writeStartArray();
+          for (String name : namesList) {
+            generator.write(name);
+          }
+          generator.writeEnd();
+        }
         generator.writeEnd();
-      });
+      }
 
       generator.writeEnd();
     }
@@ -652,6 +678,24 @@ public class ArkSavegame implements GameObjectContainer {
       embeddedData.forEach(ed -> embeddedDataBuilder.add(ed.toJson()));
 
       builder.add("embeddedData", embeddedDataBuilder);
+    }
+
+    if (!dataFilesObjectMap.isEmpty()) {
+      JsonObjectBuilder objectMapBuilder = Json.createObjectBuilder();
+
+      for (Entry<Integer, List<String[]>> entry : dataFilesObjectMap.entrySet()) {
+        JsonArrayBuilder namesListListBuilder = Json.createArrayBuilder();
+        for (String[] namesList : entry.getValue()) {
+          JsonArrayBuilder namesListBuilder = Json.createArrayBuilder();
+          for (String name : namesList) {
+            namesListBuilder.add(name);
+          }
+          namesListListBuilder.add(namesListBuilder);
+        }
+        objectMapBuilder.add(entry.getKey().toString(), namesListListBuilder);
+      }
+
+      builder.add("dataFilesObjectMap", objectMapBuilder);
     }
 
     if (!objects.isEmpty()) {
