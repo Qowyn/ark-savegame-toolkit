@@ -44,9 +44,9 @@ public class GameObject implements PropertyContainer, NameContainer {
 
   private List<ArkName> names;
 
-  private boolean unkBool;
+  private boolean fromDataFile;
 
-  private int unkIndex; // Related to unkBool
+  private int dataFileIndex;
 
   private LocationData locationData;
 
@@ -118,20 +118,20 @@ public class GameObject implements PropertyContainer, NameContainer {
     this.names = names;
   }
 
-  public boolean isUnkBool() {
-    return unkBool;
+  public boolean isFromDataFile() {
+    return fromDataFile;
   }
 
-  public void setUnkBool(boolean unkBool) {
-    this.unkBool = unkBool;
+  public void setFromDataFile(boolean fromDataFile) {
+    this.fromDataFile = fromDataFile;
   }
 
-  public int getUnkIndex() {
-    return unkIndex;
+  public int getDataFileIndex() {
+    return dataFileIndex;
   }
 
-  public void setUnkIndex(int unkIndex) {
-    this.unkIndex = unkIndex;
+  public void setDataFileIndex(int dataFileIndex) {
+    this.dataFileIndex = dataFileIndex;
   }
 
   public LocationData getLocation() {
@@ -182,8 +182,8 @@ public class GameObject implements PropertyContainer, NameContainer {
       names = nameArray.getValuesAs(JsonString.class).stream().map(s -> ArkName.from(s.getString())).collect(Collectors.toList());
     }
 
-    unkBool = o.getBoolean("unkBool", false);
-    unkIndex = o.getInt("unkIndex", 0);
+    fromDataFile = o.getBoolean("fromDataFile", false);
+    dataFileIndex = o.getInt("dataFileIndex", 0);
 
     JsonObject locData = o.getJsonObject("location");
     if (locData != null) {
@@ -233,12 +233,12 @@ public class GameObject implements PropertyContainer, NameContainer {
       job.add("names", namesArray);
     }
 
-    if (unkBool) {
-      job.add("unkBool", unkBool);
+    if (fromDataFile) {
+      job.add("fromDataFile", fromDataFile);
     }
 
-    if (unkIndex != 0) {
-      job.add("unkIndex", unkIndex);
+    if (dataFileIndex != 0) {
+      job.add("dataFileIndex", dataFileIndex);
     }
 
     if (locationData != null) {
@@ -305,8 +305,8 @@ public class GameObject implements PropertyContainer, NameContainer {
       names.add(archive.getName());
     }
 
-    unkBool = archive.getBoolean();
-    unkIndex = archive.getInt();
+    fromDataFile = archive.getBoolean();
+    dataFileIndex = archive.getInt();
 
     boolean hasLocationData = archive.getBoolean();
 
@@ -380,8 +380,8 @@ public class GameObject implements PropertyContainer, NameContainer {
       archive.putInt(0);
     }
 
-    archive.putBoolean(unkBool);
-    archive.putInt(unkIndex);
+    archive.putBoolean(fromDataFile);
+    archive.putInt(dataFileIndex);
 
     if (locationData != null) {
       archive.putBoolean(true);

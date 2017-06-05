@@ -21,7 +21,7 @@ public class ObjectReference implements NameContainer {
 
   public static final int TYPE_PATH = 1;
 
-  // Temporary, to support path references in sav files
+  // Temporary, to support path references in save files
   public static final int TYPE_PATH_NO_TYPE = 2;
 
   private int length;
@@ -145,8 +145,6 @@ public class ObjectReference implements NameContainer {
       } else if (objectType == TYPE_PATH) {
         objectString = archive.getName();
       } else {
-        // System.err.println("Warning: ObjectReference with possibly unknown type " + objectType +
-        // " at " + Integer.toHexString(archive.position()));
         archive.position(archive.position() - 4);
         objectType = TYPE_PATH_NO_TYPE;
         objectString = archive.getName();
