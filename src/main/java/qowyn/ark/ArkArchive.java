@@ -207,6 +207,14 @@ public class ArkArchive {
     return ret;
   }
 
+  public void getBytes(byte[] bytes) {
+    mbb.get(bytes);
+  }
+
+  public void getBytes(byte[] bytes, int offset, int length) {
+    mbb.get(bytes, offset, length);
+  }
+
   public boolean getBoolean() {
     int val = mbb.getInt();
     if (val < 0 || val > 1) {
@@ -322,6 +330,15 @@ public class ArkArchive {
    */
   public void putBytes(byte[] value) {
     mbb.put(value);
+  }
+
+  /**
+   * Writes {@code value} directly to the archive.
+   * 
+   * @param value The data to write
+   */
+  public void putBytes(byte[] value, int offset, int length) {
+    mbb.put(value, offset, length);
   }
 
   /**
