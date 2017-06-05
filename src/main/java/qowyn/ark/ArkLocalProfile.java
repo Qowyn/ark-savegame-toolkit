@@ -217,7 +217,9 @@ public class ArkLocalProfile implements PropertyContainer, GameObjectContainer {
     }
 
     job.add("unknownData", ENCODER.encodeToString(unknownData));
-    job.add("unknownData2", ENCODER.encodeToString(unknownData2));
+    if (unknownData2 != null) {
+      job.add("unknownData2", ENCODER.encodeToString(unknownData2));
+    }
 
     return job.build();
   }
