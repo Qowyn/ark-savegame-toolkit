@@ -48,7 +48,7 @@ public class ArkArrayStruct extends ArrayList<Struct> implements ArkArray<Struct
   }
 
   public ArkArrayStruct(JsonArray a, PropertyArray property) {
-    int size = a.size();
+    int size = property.getDataSize();
 
     ArkName structType = StructRegistry.mapArrayNameToTypeName(property.getName());
     if (structType == null) {

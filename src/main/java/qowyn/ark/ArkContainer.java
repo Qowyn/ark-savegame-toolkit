@@ -16,6 +16,7 @@ import javax.json.JsonStructure;
 import javax.json.JsonValue.ValueType;
 import javax.json.stream.JsonGenerator;
 
+import qowyn.ark.arrays.ArkArrayInt8;
 import qowyn.ark.arrays.ArkArrayUInt8;
 
 public class ArkContainer implements GameObjectContainer {
@@ -52,6 +53,17 @@ public class ArkContainer implements GameObjectContainer {
   }
 
   public ArkContainer(ArkArrayUInt8 source) {
+    ByteBuffer buffer = ByteBuffer.allocateDirect(source.size());
+
+    source.forEach(buffer::put);
+
+    buffer.clear();
+
+    ArkArchive archive = new ArkArchive(buffer);
+    readBinary(archive);
+  }
+
+  public ArkContainer(ArkArrayInt8 source) {
     ByteBuffer buffer = ByteBuffer.allocateDirect(source.size());
 
     source.forEach(buffer::put);
@@ -169,7 +181,7 @@ public class ArkContainer implements GameObjectContainer {
     return objects;
   }
 
-  public ArkArrayUInt8 toByteArray() {
+  private ByteBuffer toBuffer() {
     int size = Integer.BYTES;
 
     size += objects.stream().mapToInt(object -> object.getSize(false)).sum();
@@ -191,11 +203,32 @@ public class ArkContainer implements GameObjectContainer {
       object.writeProperties(archive, 0);
     }
 
+    return buffer;
+    
+  }
+
+  public ArkArrayUInt8 toByteArray() {
+    ByteBuffer buffer = toBuffer();
+
     ArkArrayUInt8 result = new ArkArrayUInt8();
 
     buffer.clear();
 
-    for (int n = 0; n < size; n++) {
+    for (int n = 0; n < buffer.capacity(); n++) {
+      result.add(buffer.get());
+    }
+
+    return result;
+  }
+
+  public ArkArrayInt8 toSignedByteArray() {
+    ByteBuffer buffer = toBuffer();
+
+    ArkArrayInt8 result = new ArkArrayInt8();
+
+    buffer.clear();
+
+    for (int n = 0; n < buffer.capacity(); n++) {
       result.add(buffer.get());
     }
 
