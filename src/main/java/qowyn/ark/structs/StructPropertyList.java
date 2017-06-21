@@ -2,6 +2,7 @@ package qowyn.ark.structs;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -21,10 +22,12 @@ public class StructPropertyList extends StructBase implements PropertyContainer 
 
   private List<Property<?>> properties;
 
-  public StructPropertyList() {}
+  public StructPropertyList() {
+    this.properties = new ArrayList<>();
+  }
 
   public StructPropertyList(List<Property<?>> properties) {
-    this.properties = properties;
+    this.properties = Objects.requireNonNull(properties);
   }
 
   public StructPropertyList(ArkArchive archive) {
@@ -51,7 +54,7 @@ public class StructPropertyList extends StructBase implements PropertyContainer 
 
   @Override
   public void setProperties(List<Property<?>> properties) {
-    this.properties = properties;
+    this.properties = Objects.requireNonNull(properties);
   }
 
   @Override
