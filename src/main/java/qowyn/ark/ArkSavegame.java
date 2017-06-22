@@ -42,6 +42,8 @@ public class ArkSavegame implements GameObjectContainer {
 
   protected short saveVersion;
 
+  protected int binaryDataOffset;
+
   protected int nameTableOffset;
 
   protected int propertiesBlockOffset;
@@ -137,7 +139,7 @@ public class ArkSavegame implements GameObjectContainer {
   public void readBinary(ArkArchive archive, ReadingOptions options) {
     readBinaryHeader(archive);
 
-    if (saveVersion == 6) {
+    if (saveVersion > 5) {
       // Name table is located after the objects block, but will be needed to read the objects block
       readBinaryNameTable(archive);
     }
@@ -160,6 +162,15 @@ public class ArkSavegame implements GameObjectContainer {
 
       propertiesBlockOffset = 0;
     } else if (saveVersion == 6) {
+      nameTableOffset = archive.getInt();
+      propertiesBlockOffset = archive.getInt();
+      gameTime = archive.getFloat();
+    } else if (saveVersion == 7) {
+      binaryDataOffset = archive.getInt();
+      int shouldBeZero = archive.getInt();
+      if (shouldBeZero != 0) {
+        throw new UnsupportedOperationException("The stuff at this position should be zero: " + Integer.toHexString(archive.position() - 4));
+      }
       nameTableOffset = archive.getInt();
       propertiesBlockOffset = archive.getInt();
       gameTime = archive.getFloat();
