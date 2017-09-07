@@ -69,26 +69,7 @@ public class ArkSavegame implements GameObjectContainer {
   }
 
   public ArkSavegame(String fileName, ReadingOptions options) throws IOException {
-    try (FileChannel fc = FileChannel.open(Paths.get(fileName), StandardOpenOption.READ)) {
-      if (fc.size() > Integer.MAX_VALUE) {
-        throw new RuntimeException("Input file is too large.");
-      }
-      ByteBuffer buffer;
-      if (options.usesMemoryMapping()) {
-        buffer = fc.map(FileChannel.MapMode.READ_ONLY, 0, fc.size());
-      } else {
-        buffer = ByteBuffer.allocateDirect((int) fc.size());
-        int bytesRead = fc.read(buffer);
-        int totalRead = bytesRead;
-        while (bytesRead != -1 && totalRead < fc.size()) {
-          bytesRead = fc.read(buffer);
-          totalRead += bytesRead;
-        }
-        buffer.clear();
-      }
-      ArkArchive archive = new ArkArchive(buffer);
-      readBinary(archive, options);
-    }
+    readBinary(fileName, options);
   }
 
   public ArkSavegame(JsonObject object) {
@@ -136,12 +117,40 @@ public class ArkSavegame implements GameObjectContainer {
     return hasUnknownData;
   }
 
+  public void readBinary(String fileName, ReadingOptions options) throws IOException {
+    try (FileChannel fc = FileChannel.open(Paths.get(fileName), StandardOpenOption.READ)) {
+      if (fc.size() > Integer.MAX_VALUE) {
+        throw new RuntimeException("Input file is too large.");
+      }
+      ByteBuffer buffer;
+      if (options.usesMemoryMapping()) {
+        buffer = fc.map(FileChannel.MapMode.READ_ONLY, 0, fc.size());
+      } else {
+        buffer = ByteBuffer.allocateDirect((int) fc.size());
+        int bytesRead = fc.read(buffer);
+        int totalRead = bytesRead;
+        while (bytesRead != -1 && totalRead < fc.size()) {
+          bytesRead = fc.read(buffer);
+          totalRead += bytesRead;
+        }
+        buffer.clear();
+      }
+      ArkArchive archive = new ArkArchive(buffer);
+      readBinary(archive, options);
+    }
+  }
+
   public void readBinary(ArkArchive archive, ReadingOptions options) {
     readBinaryHeader(archive);
 
     if (saveVersion > 5) {
       // Name table is located after the objects block, but will be needed to read the objects block
       readBinaryNameTable(archive);
+    }
+
+    if (saveVersion > 8) {
+      archive.unknownData();
+      archive.getInt();
     }
 
     readBinaryDataFiles(archive, options);
@@ -165,7 +174,7 @@ public class ArkSavegame implements GameObjectContainer {
       nameTableOffset = archive.getInt();
       propertiesBlockOffset = archive.getInt();
       gameTime = archive.getFloat();
-    } else if (saveVersion == 7) {
+    } else if (saveVersion >= 7 || saveVersion <= 9) {
       binaryDataOffset = archive.getInt();
       int shouldBeZero = archive.getInt();
       if (shouldBeZero != 0) {
