@@ -165,7 +165,7 @@ public class ArkSavegame implements GameObjectContainer {
       nameTableOffset = archive.getInt();
       propertiesBlockOffset = archive.getInt();
       gameTime = archive.getFloat();
-    } else if (saveVersion == 7) {
+    } else if (saveVersion == 7 || saveVersion == 8) {
       binaryDataOffset = archive.getInt();
       int shouldBeZero = archive.getInt();
       if (shouldBeZero != 0) {
