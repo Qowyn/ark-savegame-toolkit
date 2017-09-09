@@ -87,11 +87,13 @@ public class ArkCloudInventory implements PropertyContainer, GameObjectContainer
   public void writeBinary(String fileName, WritingOptions options) throws FileNotFoundException, IOException {
     int size = Integer.BYTES * 2;
 
-    size += objects.stream().mapToInt(object -> object.getSize(false)).sum();
+    NameSizeCalculator nameSizer = ArkArchive.getNameSizer(false);
+
+    size += objects.stream().mapToInt(object -> object.getSize(nameSizer)).sum();
 
     int propertiesBlockOffset = size;
 
-    size += objects.stream().mapToInt(object -> object.getPropertiesSize(false)).sum();
+    size += objects.stream().mapToInt(object -> object.getPropertiesSize(nameSizer)).sum();
 
     try (FileChannel fc = FileChannel.open(Paths.get(fileName), StandardOpenOption.CREATE, StandardOpenOption.READ, StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING)) {
       ByteBuffer buffer;

@@ -4,6 +4,7 @@ import javax.json.JsonObject;
 import javax.json.JsonObjectBuilder;
 
 import qowyn.ark.ArkArchive;
+import qowyn.ark.NameSizeCalculator;
 import qowyn.ark.types.ArkName;
 
 public class PropertyBool extends PropertyBase<Boolean> {
@@ -49,12 +50,12 @@ public class PropertyBool extends PropertyBase<Boolean> {
   }
 
   @Override
-  protected int calculateAdditionalSize(boolean nameTable) {
+  protected int calculateAdditionalSize(NameSizeCalculator nameSizer) {
     return 1; // Special case: value of PropertyBool is not considered "data"
   }
 
   @Override
-  public int calculateDataSize(boolean nameTable) {
+  public int calculateDataSize(NameSizeCalculator nameSizer) {
     return 0;
   }
 

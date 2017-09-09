@@ -5,6 +5,7 @@ import javax.json.JsonObjectBuilder;
 import javax.json.JsonValue.ValueType;
 
 import qowyn.ark.ArkArchive;
+import qowyn.ark.NameSizeCalculator;
 import qowyn.ark.types.ArkName;
 
 public class PropertyStr extends PropertyBase<String> {
@@ -58,7 +59,7 @@ public class PropertyStr extends PropertyBase<String> {
   }
 
   @Override
-  public int calculateDataSize(boolean nameTable) {
+  public int calculateDataSize(NameSizeCalculator nameSizer) {
     return ArkArchive.getStringLength(value);
   }
 

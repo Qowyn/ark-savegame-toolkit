@@ -6,6 +6,7 @@ import javax.json.JsonObjectBuilder;
 import javax.json.JsonValue;
 
 import qowyn.ark.ArkArchive;
+import qowyn.ark.NameSizeCalculator;
 
 public class StructUniqueNetIdRepl extends StructBase {
 
@@ -49,7 +50,7 @@ public class StructUniqueNetIdRepl extends StructBase {
   }
 
   @Override
-  public int getSize(boolean nameTable) {
+  public int getSize(NameSizeCalculator nameSizer) {
     return Integer.BYTES + ArkArchive.getStringLength(netId);
   }
 

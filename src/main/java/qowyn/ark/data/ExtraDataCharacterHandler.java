@@ -12,12 +12,12 @@ public class ExtraDataCharacterHandler implements ExtraDataHandler {
 
   @Override
   public boolean canHandle(GameObject object, int length) {
-    return object.getClassString().contains("_Character_") && length == 8;
+    return (object.getClassString().contains("_Character_") || object.getClassString().startsWith("PlayerPawnTest_")) && length == 8;
   }
 
   @Override
   public boolean canHandle(GameObject object, JsonValue value) {
-    return object.getClassString().contains("_Character_") && value.getValueType() == ValueType.NULL;
+    return (object.getClassString().contains("_Character_") || object.getClassString().startsWith("PlayerPawnTest_")) && value.getValueType() == ValueType.NULL;
   }
 
   @Override

@@ -3,7 +3,6 @@ package qowyn.ark.structs;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 import javax.json.Json;
@@ -13,6 +12,8 @@ import javax.json.JsonObject;
 import javax.json.JsonValue;
 
 import qowyn.ark.ArkArchive;
+import qowyn.ark.NameCollector;
+import qowyn.ark.NameSizeCalculator;
 import qowyn.ark.PropertyContainer;
 import qowyn.ark.properties.Property;
 import qowyn.ark.properties.PropertyRegistry;
@@ -78,17 +79,17 @@ public class StructPropertyList extends StructBase implements PropertyContainer 
   }
 
   @Override
-  public int getSize(boolean nameTable) {
-    int size = ArkArchive.getNameLength(ArkName.NAME_NONE, nameTable);
+  public int getSize(NameSizeCalculator nameSizer) {
+    int size = nameSizer.sizeOf(ArkName.NAME_NONE);
 
-    size += properties.stream().mapToInt(p -> p.calculateSize(nameTable)).sum();
+    size += properties.stream().mapToInt(p -> p.calculateSize(nameSizer)).sum();
 
     return size;
   }
 
   @Override
-  public void collectNames(Set<String> nameTable) {
-    properties.forEach(p -> p.collectNames(nameTable));
+  public void collectNames(NameCollector collector) {
+    properties.forEach(p -> p.collectNames(collector));
   }
 
 }

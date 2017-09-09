@@ -1,13 +1,13 @@
 package qowyn.ark.properties;
 
-import java.util.Set;
-
 import javax.json.Json;
 import javax.json.JsonObject;
 import javax.json.JsonObjectBuilder;
 
 import qowyn.ark.ArkArchive;
 import qowyn.ark.JsonHelper;
+import qowyn.ark.NameCollector;
+import qowyn.ark.NameSizeCalculator;
 import qowyn.ark.types.ArkName;
 
 public abstract class PropertyBase<T> implements Property<T> {
@@ -89,19 +89,26 @@ public abstract class PropertyBase<T> implements Property<T> {
    * @param nameTable
    * @return
    */
-  protected int calculateAdditionalSize(boolean nameTable) {
+  protected int calculateAdditionalSize(NameSizeCalculator nameSizer) {
     return 0;
   }
 
+  /**
+   * Side-effect: calling this function will change the value of the dataSize field.
+   * This makes sure that the value can be used by the write function without having to calculate it twice
+   * @param nameSizer
+   * @return
+   */
   @Override
-  public int calculateSize(boolean nameTable) {
+  public int calculateSize(NameSizeCalculator nameSizer) {
     // dataSize index
     int size = Integer.BYTES * 2;
+    dataSize = calculateDataSize(nameSizer);
 
-    size += ArkArchive.getNameLength(name, nameTable);
-    size += ArkArchive.getNameLength(getType(), nameTable);
-    size += calculateAdditionalSize(nameTable);
-    size += calculateDataSize(nameTable);
+    size += nameSizer.sizeOf(name);
+    size += nameSizer.sizeOf(getType());
+    size += calculateAdditionalSize(nameSizer);
+    size += dataSize;
 
     return size;
   }
@@ -110,6 +117,7 @@ public abstract class PropertyBase<T> implements Property<T> {
 
   /**
    * Determines if the dataSize cannot be calculated and thus needs to be recorded.
+   * Used when writing the JSON representation of the property
    * 
    * @return <tt>true</tt> if dataSize needs to be recorded
    */
@@ -139,15 +147,16 @@ public abstract class PropertyBase<T> implements Property<T> {
   public void write(ArkArchive archive) {
     archive.putName(name);
     archive.putName(getType());
-    archive.putInt(calculateDataSize(archive.hasNameTable()));
+    archive.putInt(dataSize);
     archive.putInt(index);
 
     writeValue(archive);
   }
 
-  public void collectNames(Set<String> nameTable) {
-    nameTable.add(name.getName());
-    nameTable.add(getType().getName());
+  @Override
+  public void collectNames(NameCollector collector) {
+    collector.accept(name);
+    collector.accept(getType());
   }
 
   @Override

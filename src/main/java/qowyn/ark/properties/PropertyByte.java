@@ -1,12 +1,12 @@
 package qowyn.ark.properties;
 
-import java.util.Set;
-
 import javax.json.JsonObject;
 import javax.json.JsonObjectBuilder;
 
 import qowyn.ark.ArkArchive;
 import qowyn.ark.JsonHelper;
+import qowyn.ark.NameCollector;
+import qowyn.ark.NameSizeCalculator;
 import qowyn.ark.types.ArkByteValue;
 import qowyn.ark.types.ArkName;
 
@@ -71,20 +71,20 @@ public class PropertyByte extends PropertyBase<ArkByteValue> {
   }
 
   @Override
-  protected int calculateAdditionalSize(boolean nameTable) {
-    return ArkArchive.getNameLength(enumType, nameTable);
+  protected int calculateAdditionalSize(NameSizeCalculator nameSizer) {
+    return nameSizer.sizeOf(enumType);
   }
 
   @Override
-  public int calculateDataSize(boolean nameTable) {
-    return value.getSize(nameTable);
+  public int calculateDataSize(NameSizeCalculator nameSizer) {
+    return value.getSize(nameSizer);
   }
 
   @Override
-  public void collectNames(Set<String> nameTable) {
-    super.collectNames(nameTable);
-    nameTable.add(enumType.toString());
-    value.collectNames(nameTable);
+  public void collectNames(NameCollector collector) {
+    super.collectNames(collector);
+    collector.accept(enumType);
+    value.collectNames(collector);
   }
 
   public ArkName getEnumType() {

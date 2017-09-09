@@ -5,6 +5,7 @@ import java.util.Base64;
 import javax.json.JsonValue;
 
 import qowyn.ark.ArkArchive;
+import qowyn.ark.NameSizeCalculator;
 import qowyn.ark.json.SimpleJsonString;
 
 public class ExtraDataBlob implements ExtraData {
@@ -22,7 +23,7 @@ public class ExtraDataBlob implements ExtraData {
   }
 
   @Override
-  public int calculateSize(boolean nameTable) {
+  public int calculateSize(NameSizeCalculator nameSizer) {
     return data != null ? data.length : 0;
   }
 

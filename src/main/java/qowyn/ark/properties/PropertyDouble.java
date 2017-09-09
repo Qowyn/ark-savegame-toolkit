@@ -1,6 +1,7 @@
 package qowyn.ark.properties;
 
 import qowyn.ark.ArkArchive;
+import qowyn.ark.NameSizeCalculator;
 import qowyn.ark.types.ArkName;
 
 import javax.json.JsonNumber;
@@ -64,7 +65,7 @@ public class PropertyDouble extends PropertyBase<Double> {
   }
 
   @Override
-  public int calculateDataSize(boolean nameTable) {
+  public int calculateDataSize(NameSizeCalculator nameSizer) {
     return Double.BYTES;
   }
 

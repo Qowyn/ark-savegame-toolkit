@@ -6,6 +6,7 @@ import javax.json.JsonValue;
 
 import qowyn.ark.ArkArchive;
 import qowyn.ark.NameContainer;
+import qowyn.ark.NameSizeCalculator;
 import qowyn.ark.types.ArkName;
 
 public interface ArkArray<T> extends List<T>, NameContainer {
@@ -14,7 +15,7 @@ public interface ArkArray<T> extends List<T>, NameContainer {
 
   public ArkName getType();
 
-  public int calculateSize(boolean nameTable);
+  public int calculateSize(NameSizeCalculator nameSizer);
 
   public JsonValue toJson();
 

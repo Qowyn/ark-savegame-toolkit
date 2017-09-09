@@ -4,6 +4,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
@@ -48,6 +49,14 @@ public class ArkSavegame implements GameObjectContainer {
 
   protected int propertiesBlockOffset;
 
+  /**
+   * How often has this map-save been written
+   */
+  protected int saveCount;
+
+  /**
+   * How long has this map been running
+   */
   protected float gameTime;
 
   protected final ArrayList<String> dataFiles = new ArrayList<>();
@@ -57,6 +66,24 @@ public class ArkSavegame implements GameObjectContainer {
   protected final Map<Integer, List<String[]>> dataFilesObjectMap = new LinkedHashMap<>();
 
   protected final ArrayList<GameObject> objects = new ArrayList<>();
+
+  protected int hibernateV8Unknown1;
+
+  protected int hibernateV8Unknown2;
+
+  protected int hibernateV8Unknown3;
+
+  protected int hibernateV8Unknown4;
+
+  protected int hibernateUnknown1;
+
+  protected int hibernateUnknown2;
+
+  protected final ArrayList<String> hibernatedClasses = new ArrayList<>();
+
+  protected final ArrayList<Integer> hibernatedIndices = new ArrayList<>();
+
+  protected final ArrayList<HibernatedObject> hibernatedObjects = new ArrayList<>();
 
   protected List<String> oldNameList;
 
@@ -118,7 +145,8 @@ public class ArkSavegame implements GameObjectContainer {
   }
 
   public void readBinary(String fileName, ReadingOptions options) throws IOException {
-    try (FileChannel fc = FileChannel.open(Paths.get(fileName), StandardOpenOption.READ)) {
+    Path filePath = Paths.get(fileName);
+    try (FileChannel fc = FileChannel.open(filePath, StandardOpenOption.READ)) {
       if (fc.size() > Integer.MAX_VALUE) {
         throw new RuntimeException("Input file is too large.");
       }
@@ -135,7 +163,7 @@ public class ArkSavegame implements GameObjectContainer {
         }
         buffer.clear();
       }
-      ArkArchive archive = new ArkArchive(buffer);
+      ArkArchive archive = new ArkArchive(buffer, filePath);
       readBinary(archive, options);
     }
   }
@@ -149,8 +177,7 @@ public class ArkSavegame implements GameObjectContainer {
     }
 
     if (saveVersion > 8) {
-      archive.unknownData();
-      archive.getInt();
+      saveCount = archive.getInt();
     }
 
     readBinaryDataFiles(archive, options);
@@ -158,6 +185,10 @@ public class ArkSavegame implements GameObjectContainer {
     readBinaryDataFilesObjectMap(archive, options);
     readBinaryObjects(archive, options);
     readBinaryObjectProperties(archive, options);
+
+    if (saveVersion > 6) {
+      readBinaryHibernated(archive, options);
+    }
 
     oldNameList = archive.hasUnknownNames() ? archive.getNameTable() : null;
     hasUnknownData = archive.hasUnknownData();
@@ -291,7 +322,7 @@ public class ArkSavegame implements GameObjectContainer {
             stream = stream.filter(n -> options.getObjectFilter().test(objects.get(n)));
           }
 
-          stream.forEach(n -> readBinaryObjectPropertiesImpl(n, new ArkArchive(archive)));
+          stream.forEach(n -> readBinaryObjectPropertiesImpl(n, archive.clone()));
         }).join();
 
         pool.shutdown();
@@ -318,6 +349,54 @@ public class ArkSavegame implements GameObjectContainer {
   protected void readBinaryObjectPropertiesImpl(int n, ArkArchive archive) {
     objects.get(n).loadProperties(archive, (n < objects.size() - 1) ? objects.get(n + 1) : null, propertiesBlockOffset);
   }
+  
+  protected void readBinaryHibernated(ArkArchive archive, ReadingOptions options) {
+    archive.position(binaryDataOffset);
+
+    if (saveVersion > 7) {
+      hibernateV8Unknown1 = archive.getInt();
+      hibernateV8Unknown2 = archive.getInt();
+      hibernateV8Unknown3 = archive.getInt();
+      hibernateV8Unknown4 = archive.getInt();
+    }
+
+    // No hibernate section if we reached the nameTable
+    if (archive.position() == nameTableOffset) {
+      return;
+    }
+
+    hibernateUnknown1 = archive.getInt();
+    hibernateUnknown2 = archive.getInt();
+
+    int hibernatedClassesCount = archive.getInt();
+
+    hibernatedClasses.clear();
+    hibernatedClasses.ensureCapacity(hibernatedClassesCount);
+    for (int index = 0; index < hibernatedClassesCount; index++) {
+      hibernatedClasses.add(archive.getString());
+    }
+
+    int hibernatedIndicesCount = archive.getInt();
+
+    if (hibernatedIndicesCount != hibernatedClassesCount) {
+      archive.debugMessage("hibernatedClassesCount does not match hibernatedIndicesCount");
+      throw new UnsupportedOperationException();
+    }
+
+    hibernatedIndices.clear();
+    hibernatedIndices.ensureCapacity(hibernatedIndicesCount);
+    for (int index = 0; index < hibernatedIndicesCount; index++) {
+      hibernatedIndices.add(archive.getInt());
+    }
+
+    int hibernatedObjectsCount = archive.getInt();
+
+    hibernatedObjects.clear();
+    hibernatedObjects.ensureCapacity(hibernatedObjectsCount);
+    for (int index = 0; index < hibernatedObjectsCount; index++) {
+      hibernatedObjects.add(new HibernatedObject(archive));
+    }
+  }
 
   public void writeBinary(String fileName) throws FileNotFoundException, IOException {
     writeBinary(fileName, new WritingOptions());
@@ -325,11 +404,13 @@ public class ArkSavegame implements GameObjectContainer {
 
   public void writeBinary(String fileName, WritingOptions options) throws FileNotFoundException, IOException {
     // calculateHeaderSize checks for valid known versions
+    NameSizeCalculator calculator = ArkArchive.getNameSizer(saveVersion == 6);
+
     int size = calculateHeaderSize();
     size += calculateDataFilesSize();
     size += calculateEmbeddedDataSize();
     size += calculateDataFilesObjectMapSize();
-    size += calculateObjectsSize(saveVersion == 6);
+    size += calculateObjectsSize(calculator);
 
     Set<String> nameTable;
 
@@ -337,8 +418,9 @@ public class ArkSavegame implements GameObjectContainer {
       nameTableOffset = size;
 
       nameTable = oldNameList != null ? new ListAppendingSet<>(oldNameList) : new LinkedHashSet<>();
+      NameCollector collector = name -> nameTable.add(name.getName());
 
-      objects.forEach(o -> o.collectNames(nameTable));
+      objects.forEach(o -> o.collectNames(collector));
 
       if (oldNameList != null) {
         size += 4 + ((ListAppendingSet<String>) nameTable).getList().stream().mapToInt(ArkArchive::getStringLength).sum();
@@ -351,7 +433,7 @@ public class ArkSavegame implements GameObjectContainer {
 
     propertiesBlockOffset = size;
 
-    size += calculateObjectPropertiesSize(saveVersion == 6);
+    size += calculateObjectPropertiesSize(calculator);
 
     try (FileChannel fc = FileChannel.open(Paths.get(fileName), StandardOpenOption.CREATE, StandardOpenOption.READ, StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING)) {
       ByteBuffer buffer;
@@ -465,7 +547,7 @@ public class ArkSavegame implements GameObjectContainer {
     if (options.isParallel()) {
       ForkJoinPool pool = new ForkJoinPool(Runtime.getRuntime().availableProcessors(), ForkJoinPool.defaultForkJoinWorkerThreadFactory, null, true);
 
-      final ThreadLocal<ArkArchive> sharedArchive = ThreadLocal.withInitial(() -> new ArkArchive(archive));
+      final ThreadLocal<ArkArchive> sharedArchive = ThreadLocal.withInitial(archive::clone);
 
       pool.submit(() -> objects.parallelStream().forEach(o -> o.writeProperties(sharedArchive.get(), offset))).join();
 
@@ -506,12 +588,12 @@ public class ArkSavegame implements GameObjectContainer {
     return size;
   }
 
-  protected int calculateObjectsSize(boolean nameTable) {
-    return 4 + objects.parallelStream().mapToInt(o -> o.getSize(nameTable)).sum();
+  protected int calculateObjectsSize(NameSizeCalculator nameSizer) {
+    return 4 + objects.parallelStream().mapToInt(o -> o.getSize(nameSizer)).sum();
   }
 
-  protected int calculateObjectPropertiesSize(boolean nameTable) {
-    return objects.parallelStream().mapToInt(o -> o.getPropertiesSize(nameTable)).sum();
+  protected int calculateObjectPropertiesSize(NameSizeCalculator nameSizer) {
+    return objects.parallelStream().mapToInt(o -> o.getPropertiesSize(nameSizer)).sum();
   }
 
   public void readJson(JsonObject object, ReadingOptions options) {
@@ -609,6 +691,10 @@ public class ArkSavegame implements GameObjectContainer {
     generator.write("saveVersion", saveVersion);
     generator.write("gameTime", gameTime);
 
+    if (saveCount > 0) {
+      generator.write("saveCount", saveCount);
+    }
+
     if (oldNameList != null && !oldNameList.isEmpty()) {
       generator.writeStartArray("preservedNames");
 
@@ -670,6 +756,48 @@ public class ArkSavegame implements GameObjectContainer {
         disruptor.shutdown();
       } else {
         objects.forEach(o -> generator.write(o.toJson()));
+      }
+
+      generator.writeEnd();
+    }
+
+    if (saveVersion > 6) {
+      generator.writeStartObject("hibernation");
+
+      if (saveVersion > 7) {
+        generator.write("v8Unknown1", hibernateV8Unknown1);
+        generator.write("v8Unknown2", hibernateV8Unknown2);
+        generator.write("v8Unknown3", hibernateV8Unknown3);
+        generator.write("v8Unknown4", hibernateV8Unknown4);
+      }
+
+      if (hibernateUnknown1 != 0) {
+        generator.write("unknown1", hibernateUnknown1);
+        generator.write("unknown2", hibernateUnknown2);
+      }
+
+      if (!hibernatedClasses.isEmpty()) {
+        generator.writeStartArray("classes");
+
+        hibernatedClasses.forEach(generator::write);
+
+        generator.writeEnd();
+      }
+
+      if (!hibernatedIndices.isEmpty()) {
+        generator.writeStartArray("indices");
+
+        hibernatedIndices.forEach(generator::write);
+
+        generator.writeEnd();
+      }
+
+      if (!hibernatedObjects.isEmpty()) {
+        generator.writeStartArray("objects");
+
+        hibernatedObjects.forEach(o -> generator.write(o.toJson()));
+
+        generator.writeEnd();
       }
 
       generator.writeEnd();

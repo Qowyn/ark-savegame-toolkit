@@ -8,6 +8,7 @@ import javax.json.JsonValue.ValueType;
 
 import qowyn.ark.ArkArchive;
 import qowyn.ark.GameObject;
+import qowyn.ark.LoggerHelper;
 
 public class ExtraDataFallbackHandler implements ExtraDataHandler {
 
@@ -27,6 +28,7 @@ public class ExtraDataFallbackHandler implements ExtraDataHandler {
   public ExtraData read(GameObject object, ArkArchive archive, int length) {
     ExtraDataBlob extraData = new ExtraDataBlob();
 
+    archive.debugMessage(LoggerHelper.format("Unknown extended data for %s with length %d", object.getClassString(), length));
     extraData.setData(archive.getBytes(length));
     archive.unknownNames();
 

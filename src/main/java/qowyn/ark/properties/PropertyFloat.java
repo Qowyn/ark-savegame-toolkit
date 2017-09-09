@@ -8,6 +8,7 @@ import javax.json.JsonValue;
 import javax.json.JsonValue.ValueType;
 
 import qowyn.ark.ArkArchive;
+import qowyn.ark.NameSizeCalculator;
 import qowyn.ark.types.ArkName;
 
 public class PropertyFloat extends PropertyBase<Float> {
@@ -64,7 +65,7 @@ public class PropertyFloat extends PropertyBase<Float> {
   }
 
   @Override
-  public int calculateDataSize(boolean nameTable) {
+  public int calculateDataSize(NameSizeCalculator nameSizer) {
     return Float.BYTES;
   }
 

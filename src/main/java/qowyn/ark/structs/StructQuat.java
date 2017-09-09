@@ -7,6 +7,7 @@ import javax.json.JsonValue;
 
 import qowyn.ark.ArkArchive;
 import qowyn.ark.JsonHelper;
+import qowyn.ark.NameSizeCalculator;
 
 public class StructQuat extends StructBase {
 
@@ -96,7 +97,7 @@ public class StructQuat extends StructBase {
   }
 
   @Override
-  public int getSize(boolean nameTable) {
+  public int getSize(NameSizeCalculator nameSizer) {
     return Float.BYTES * 4;
   }
 

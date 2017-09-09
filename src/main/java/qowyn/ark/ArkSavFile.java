@@ -86,9 +86,11 @@ public class ArkSavFile implements PropertyContainer {
   public void writeBinary(String fileName, WritingOptions options) throws FileNotFoundException, IOException {
     int size = Integer.BYTES + ArkArchive.getStringLength(className);
 
-    size += ArkArchive.getNameLength(ArkName.NAME_NONE, false);
+    NameSizeCalculator nameSizer = ArkArchive.getNameSizer(false);
 
-    size += properties.stream().mapToInt(p -> p.calculateSize(false)).sum();
+    size += nameSizer.sizeOf(ArkName.NAME_NONE);
+
+    size += properties.stream().mapToInt(p -> p.calculateSize(nameSizer)).sum();
 
     try (FileChannel fc = FileChannel.open(Paths.get(fileName), StandardOpenOption.CREATE, StandardOpenOption.READ, StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING)) {
       ByteBuffer buffer;

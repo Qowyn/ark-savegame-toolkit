@@ -2,7 +2,6 @@ package qowyn.ark.data;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import javax.json.Json;
 import javax.json.JsonArrayBuilder;
@@ -10,7 +9,9 @@ import javax.json.JsonObjectBuilder;
 import javax.json.JsonValue;
 
 import qowyn.ark.ArkArchive;
+import qowyn.ark.NameCollector;
 import qowyn.ark.NameContainer;
+import qowyn.ark.NameSizeCalculator;
 import qowyn.ark.structs.StructPropertyList;
 
 public class ExtraDataFoliage implements ExtraData, NameContainer {
@@ -28,14 +29,14 @@ public class ExtraDataFoliage implements ExtraData, NameContainer {
   }
 
   @Override
-  public int calculateSize(boolean nameTable) {
+  public int calculateSize(NameSizeCalculator nameSizer) {
     int size = Integer.BYTES * 2;
 
     size += Integer.BYTES * structMapList.size();
     for (Map<String, StructPropertyList> structMap : structMapList) {
       for (Map.Entry<String, StructPropertyList> entry : structMap.entrySet()) {
         size += ArkArchive.getStringLength(entry.getKey());
-        size += entry.getValue().getSize(nameTable);
+        size += entry.getValue().getSize(nameSizer);
         size += Integer.BYTES;
       }
     }
@@ -74,10 +75,10 @@ public class ExtraDataFoliage implements ExtraData, NameContainer {
   }
 
   @Override
-  public void collectNames(Set<String> nameTable) {
+  public void collectNames(NameCollector collector) {
     for (Map<String, StructPropertyList> structMap : structMapList) {
       for (Map.Entry<String, StructPropertyList> entry : structMap.entrySet()) {
-        entry.getValue().collectNames(nameTable);
+        entry.getValue().collectNames(collector);
       }
     }
   }

@@ -1,11 +1,11 @@
 package qowyn.ark.properties;
 
-import java.util.Set;
-
 import javax.json.JsonObject;
 import javax.json.JsonObjectBuilder;
 
 import qowyn.ark.ArkArchive;
+import qowyn.ark.NameCollector;
+import qowyn.ark.NameSizeCalculator;
 import qowyn.ark.structs.Struct;
 import qowyn.ark.structs.StructRegistry;
 import qowyn.ark.structs.StructUnknown;
@@ -87,20 +87,20 @@ public class PropertyStruct extends PropertyBase<Struct> {
   }
 
   @Override
-  protected int calculateAdditionalSize(boolean nameTable) {
-    return ArkArchive.getNameLength(structType, nameTable);
+  protected int calculateAdditionalSize(NameSizeCalculator nameSizer) {
+    return nameSizer.sizeOf(structType);
   }
 
   @Override
-  public int calculateDataSize(boolean nameTable) {
-    return value.getSize(nameTable);
+  public int calculateDataSize(NameSizeCalculator nameSizer) {
+    return value.getSize(nameSizer);
   }
 
   @Override
-  public void collectNames(Set<String> nameTable) {
-    super.collectNames(nameTable);
-    nameTable.add(structType.getName());
-    value.collectNames(nameTable);
+  public void collectNames(NameCollector collector) {
+    super.collectNames(collector);
+    collector.accept(structType);
+    value.collectNames(collector);
   }
 
   public ArkName getStructType() {

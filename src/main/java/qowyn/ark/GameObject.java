@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
@@ -259,14 +258,14 @@ public class GameObject implements PropertyContainer, NameContainer {
     return job.build();
   }
 
-  public int getSize(boolean nameTable) {
+  public int getSize(NameSizeCalculator nameSizer) {
     // UUID item names.size() unkBool unkIndex (locationData!=null) propertiesOffset unkInt
     int size = 16 + Integer.BYTES * 7;
 
-    size += ArkArchive.getNameLength(className, nameTable);
+    size += nameSizer.sizeOf(className);
 
     if (names != null) {
-      size += names.stream().mapToInt(n -> ArkArchive.getNameLength(n, nameTable)).sum();
+      size += names.stream().mapToInt(nameSizer::sizeOf).sum();
     }
 
     if (locationData != null) {
@@ -276,13 +275,13 @@ public class GameObject implements PropertyContainer, NameContainer {
     return size;
   }
 
-  public int getPropertiesSize(boolean nameTable) {
-    int size = ArkArchive.getNameLength(ArkName.NAME_NONE, nameTable);
+  public int getPropertiesSize(NameSizeCalculator nameSizer) {
+    int size = nameSizer.sizeOf(ArkName.NAME_NONE);
 
-    size += properties.stream().mapToInt(p -> p.calculateSize(nameTable)).sum();
+    size += properties.stream().mapToInt(p -> p.calculateSize(nameSizer)).sum();
 
     if (extraData != null) {
-      size += extraData.calculateSize(nameTable);
+      size += extraData.calculateSize(nameSizer);
     }
 
     return size;
@@ -394,20 +393,21 @@ public class GameObject implements PropertyContainer, NameContainer {
     archive.putInt(propertiesOffset);
     archive.putInt(0);
 
-    return offset + getPropertiesSize(archive.hasNameTable());
+    return offset + getPropertiesSize(archive.getNameSizer());
   }
 
-  public void collectNames(Set<String> nameTable) {
-    nameTable.add(className.getName());
+  @Override
+  public void collectNames(NameCollector collector) {
+    collector.accept(className);
 
     if (names != null) {
-      names.forEach(name -> nameTable.add(name.getName()));
+      names.forEach(name -> collector.accept(name));
     }
 
-    properties.forEach(property -> property.collectNames(nameTable));
+    properties.forEach(property -> property.collectNames(collector));
 
     if (extraData instanceof NameContainer) {
-      ((NameContainer) extraData).collectNames(nameTable);
+      ((NameContainer) extraData).collectNames(collector);
     }
   }
 

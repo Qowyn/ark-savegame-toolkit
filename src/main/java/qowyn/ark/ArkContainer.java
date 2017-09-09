@@ -97,11 +97,13 @@ public class ArkContainer implements GameObjectContainer {
   public void writeBinary(String fileName, WritingOptions options) throws FileNotFoundException, IOException {
     int size = Integer.BYTES;
 
-    size += objects.stream().mapToInt(object -> object.getSize(false)).sum();
+    NameSizeCalculator nameSizer = ArkArchive.getNameSizer(false);
+
+    size += objects.stream().mapToInt(object -> object.getSize(nameSizer)).sum();
 
     int propertiesBlockOffset = size;
 
-    size += objects.stream().mapToInt(object -> object.getPropertiesSize(false)).sum();
+    size += objects.stream().mapToInt(object -> object.getPropertiesSize(nameSizer)).sum();
 
     try (FileChannel fc = FileChannel.open(Paths.get(fileName), StandardOpenOption.CREATE, StandardOpenOption.READ, StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING)) {
       ByteBuffer buffer;
@@ -184,11 +186,13 @@ public class ArkContainer implements GameObjectContainer {
   private ByteBuffer toBuffer() {
     int size = Integer.BYTES;
 
-    size += objects.stream().mapToInt(object -> object.getSize(false)).sum();
+    NameSizeCalculator nameSizer = ArkArchive.getNameSizer(false);
+
+    size += objects.stream().mapToInt(object -> object.getSize(nameSizer)).sum();
 
     int propertiesBlockOffset = size;
 
-    size += objects.stream().mapToInt(object -> object.getPropertiesSize(false)).sum();
+    size += objects.stream().mapToInt(object -> object.getPropertiesSize(nameSizer)).sum();
 
     ByteBuffer buffer = ByteBuffer.allocateDirect(size);
     ArkArchive archive = new ArkArchive(buffer);

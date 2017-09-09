@@ -2,11 +2,12 @@ package qowyn.ark.arrays;
 
 import java.util.AbstractList;
 import java.util.Base64;
-import java.util.Set;
 
 import javax.json.JsonValue;
 
 import qowyn.ark.ArkArchive;
+import qowyn.ark.NameCollector;
+import qowyn.ark.NameSizeCalculator;
 import qowyn.ark.json.SimpleJsonString;
 import qowyn.ark.types.ArkName;
 
@@ -41,7 +42,7 @@ public class ArkArrayUnknown extends AbstractList<Byte> implements ArkArray<Byte
   }
 
   @Override
-  public int calculateSize(boolean nameTable) {
+  public int calculateSize(NameSizeCalculator nameSizer) {
     return value.length;
   }
 
@@ -56,7 +57,7 @@ public class ArkArrayUnknown extends AbstractList<Byte> implements ArkArray<Byte
   }
 
   @Override
-  public void collectNames(Set<String> nameTable) {}
+  public void collectNames(NameCollector collector) {}
 
   @Override
   public Byte get(int index) {

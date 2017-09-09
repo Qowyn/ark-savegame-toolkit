@@ -1,6 +1,6 @@
 package qowyn.ark.structs;
 
-import java.util.Set;
+import qowyn.ark.NameCollector;
 
 public abstract class StructBase implements Struct {
 
@@ -10,6 +10,6 @@ public abstract class StructBase implements Struct {
   }
 
   @Override
-  public void collectNames(Set<String> nameTable) {}
+  public void collectNames(NameCollector collector) {}
 
 }

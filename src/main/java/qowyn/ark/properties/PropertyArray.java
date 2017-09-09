@@ -1,12 +1,12 @@
 package qowyn.ark.properties;
 
-import java.util.Set;
-
 import javax.json.JsonObject;
 import javax.json.JsonObjectBuilder;
 import javax.json.JsonValue.ValueType;
 
 import qowyn.ark.ArkArchive;
+import qowyn.ark.NameCollector;
+import qowyn.ark.NameSizeCalculator;
 import qowyn.ark.arrays.ArkArray;
 import qowyn.ark.arrays.ArkArrayRegistry;
 import qowyn.ark.arrays.ArkArrayStruct;
@@ -93,20 +93,20 @@ public class PropertyArray extends PropertyBase<ArkArray<?>> {
   }
 
   @Override
-  protected int calculateAdditionalSize(boolean nameTable) {
-    return ArkArchive.getNameLength(value.getType(), nameTable);
+  protected int calculateAdditionalSize(NameSizeCalculator nameSizer) {
+    return nameSizer.sizeOf(value.getType());
   }
 
   @Override
-  public int calculateDataSize(boolean nameTable) {
-    return value.calculateSize(nameTable);
+  public int calculateDataSize(NameSizeCalculator nameSizer) {
+    return value.calculateSize(nameSizer);
   }
 
   @Override
-  public void collectNames(Set<String> nameTable) {
-    super.collectNames(nameTable);
-    nameTable.add(value.getType().getName());
-    value.collectNames(nameTable);
+  public void collectNames(NameCollector collector) {
+    super.collectNames(collector);
+    collector.accept(value.getType());
+    value.collectNames(collector);
   }
 
   @Override

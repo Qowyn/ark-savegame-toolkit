@@ -1,7 +1,6 @@
 package qowyn.ark.arrays;
 
 import java.util.ArrayList;
-import java.util.Set;
 
 import javax.json.Json;
 import javax.json.JsonArray;
@@ -11,6 +10,8 @@ import javax.json.JsonValue;
 import javax.json.JsonValue.ValueType;
 
 import qowyn.ark.ArkArchive;
+import qowyn.ark.NameCollector;
+import qowyn.ark.NameSizeCalculator;
 import qowyn.ark.properties.PropertyArray;
 import qowyn.ark.types.ArkByteValue;
 import qowyn.ark.types.ArkName;
@@ -53,8 +54,8 @@ public class ArkArrayByteValue extends ArrayList<ArkByteValue> implements ArkArr
   }
 
   @Override
-  public int calculateSize(boolean nameTable) {
-    return Integer.BYTES + stream().mapToInt(bv -> ArkArchive.getNameLength(bv.getNameValue(), nameTable)).sum();
+  public int calculateSize(NameSizeCalculator nameSizer) {
+    return Integer.BYTES + stream().mapToInt(bv -> nameSizer.sizeOf(bv.getNameValue())).sum();
   }
 
   @Override
@@ -76,8 +77,8 @@ public class ArkArrayByteValue extends ArrayList<ArkByteValue> implements ArkArr
   }
 
   @Override
-  public void collectNames(Set<String> nameTable) {
-    this.forEach(bv -> nameTable.add(bv.getNameValue().getName()));
+  public void collectNames(NameCollector collector) {
+    this.forEach(bv -> collector.accept(bv.getNameValue()));
   }
 
 }

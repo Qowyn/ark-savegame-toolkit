@@ -7,6 +7,7 @@ import javax.json.JsonValue;
 
 import qowyn.ark.ArkArchive;
 import qowyn.ark.JsonHelper;
+import qowyn.ark.NameSizeCalculator;
 
 /**
  * Essentially FColor
@@ -102,7 +103,7 @@ public class StructColor extends StructBase {
   }
 
   @Override
-  public int getSize(boolean nameTable) {
+  public int getSize(NameSizeCalculator nameSizer) {
     return Byte.BYTES * 4;
   }
 

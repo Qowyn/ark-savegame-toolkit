@@ -1,7 +1,5 @@
 package qowyn.ark.types;
 
-import java.util.Set;
-
 import javax.json.Json;
 import javax.json.JsonNumber;
 import javax.json.JsonObject;
@@ -13,7 +11,9 @@ import javax.json.JsonValue.ValueType;
 import qowyn.ark.ArkArchive;
 import qowyn.ark.GameObject;
 import qowyn.ark.GameObjectContainer;
+import qowyn.ark.NameCollector;
 import qowyn.ark.NameContainer;
+import qowyn.ark.NameSizeCalculator;
 
 public class ObjectReference implements NameContainer {
 
@@ -125,13 +125,13 @@ public class ObjectReference implements NameContainer {
     return job.build();
   }
 
-  public int getSize(boolean nameTable) {
+  public int getSize(NameSizeCalculator nameSizer) {
     if (objectType == TYPE_ID) {
       return length;
     } else if (objectType == TYPE_PATH) {
-      return Integer.BYTES + ArkArchive.getNameLength(objectString, nameTable);
+      return Integer.BYTES + nameSizer.sizeOf(objectString);
     } else if (objectType == TYPE_PATH_NO_TYPE) {
-      return ArkArchive.getNameLength(objectString, nameTable);
+      return nameSizer.sizeOf(objectString);
     } else {
       return length;
     }
@@ -171,9 +171,9 @@ public class ObjectReference implements NameContainer {
   }
 
   @Override
-  public void collectNames(Set<String> nameTable) {
+  public void collectNames(NameCollector collector) {
     if (objectType == TYPE_PATH) {
-      nameTable.add(objectString.getName());
+      collector.accept(objectString);
     }
   }
 

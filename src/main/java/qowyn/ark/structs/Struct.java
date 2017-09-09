@@ -4,6 +4,7 @@ import javax.json.JsonValue;
 
 import qowyn.ark.ArkArchive;
 import qowyn.ark.NameContainer;
+import qowyn.ark.NameSizeCalculator;
 
 public interface Struct extends NameContainer {
 
@@ -13,6 +14,6 @@ public interface Struct extends NameContainer {
 
   public void write(ArkArchive archive);
 
-  public int getSize(boolean nameTable);
+  public int getSize(NameSizeCalculator nameSizer);
 
 }

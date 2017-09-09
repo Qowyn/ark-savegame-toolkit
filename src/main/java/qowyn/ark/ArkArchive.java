@@ -1,20 +1,33 @@
 package qowyn.ark;
 
-import java.nio.BufferOverflowException;
+import java.io.PrintStream;
+import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+import java.util.function.Supplier;
 
 import qowyn.ark.types.ArkName;
 
+/**
+ * Class used to read primitives from and write primitives to a ByteBuffer.
+ * 
+ * This class is not thread-safe.
+ * 
+ * @author Roland Firmont
+ *
+ */
 public class ArkArchive {
+
+  private final Path sourceFile;
+
+  private final int totalOffset;
 
   private ByteBuffer mbb;
 
@@ -22,9 +35,15 @@ public class ArkArchive {
 
   private Map<String, Integer> nameMap;
 
+  private int nameOffset;
+
+  private boolean instanceInTable;
+
   private final ArkArchiveState state;
 
-  private static final Logger LOGGER = Logger.getLogger(ArkArchive.class.getName());
+  public static PrintStream debugOutput = System.out;
+
+  public static boolean reportLargeStrings = false;
 
   private static final int BUFFER_LENGTH = 4096;
 
@@ -32,16 +51,55 @@ public class ArkArchive {
 
   private final byte[] smallByteBuffer = new byte[BUFFER_LENGTH];
 
-  public ArkArchive(ByteBuffer mbb) {
+  private boolean useNameTable = true;
+
+  private final boolean isSlice;
+
+  public ArkArchive(ByteBuffer mbb, Path sourceFile) {
+    this.sourceFile = sourceFile;
     this.mbb = mbb.order(ByteOrder.LITTLE_ENDIAN);
     this.state = new ArkArchiveState();
+    this.isSlice = false;
+    this.totalOffset = 0;
   }
 
-  public ArkArchive(ArkArchive toClone) {
+  public ArkArchive(ByteBuffer mbb) {
+    this.sourceFile = null;
+    this.mbb = mbb.order(ByteOrder.LITTLE_ENDIAN);
+    this.state = new ArkArchiveState();
+    this.isSlice = false;
+    this.totalOffset = 0;
+  }
+
+  protected ArkArchive(ArkArchive toClone) {
+    this.sourceFile = toClone.sourceFile;
     this.mbb = toClone.mbb.duplicate().order(ByteOrder.LITTLE_ENDIAN);
     this.nameTable = toClone.nameTable;
     this.nameMap = toClone.nameMap;
+    this.nameOffset = toClone.nameOffset;
+    this.instanceInTable = toClone.instanceInTable;
     this.state = toClone.state;
+    this.isSlice = toClone.isSlice;
+    this.totalOffset = toClone.totalOffset;
+  }
+
+  protected ArkArchive(ArkArchive toClone, int size) {
+    int oldLimit = toClone.mbb.limit();
+
+    if (toClone.mbb.position() + size > oldLimit) {
+      toClone.debugMessage(LoggerHelper.format("Requesting %d bytes with only %d bytes available", size, oldLimit - toClone.mbb.position()));
+      throw new BufferUnderflowException();
+    }
+
+    toClone.mbb.limit(toClone.mbb.position() + size);
+
+    this.sourceFile = toClone.sourceFile;
+    this.mbb = toClone.mbb.slice().order(ByteOrder.LITTLE_ENDIAN);
+    this.state = toClone.state;
+    this.isSlice = true;
+    this.totalOffset = toClone.totalOffset + toClone.mbb.position();
+
+    toClone.mbb.limit(oldLimit).position(toClone.mbb.position() + size);
   }
 
   public List<String> getNameTable() {
@@ -49,13 +107,19 @@ public class ArkArchive {
   }
 
   public void setNameTable(List<String> nameTable) {
+    setNameTable(nameTable, 1, false);
+  }
+
+  public void setNameTable(List<String> nameTable, int offset, boolean instanceInTable) {
     if (nameTable != null) {
       this.nameTable = Collections.unmodifiableList(new ArrayList<>(nameTable));
+      this.nameOffset = offset;
+      this.instanceInTable = instanceInTable;
       Map<String, Integer> nameMapBuilder = new HashMap<>();
 
-      int index = 0;
+      int index = offset;
       for (String name : nameTable) {
-        nameMapBuilder.put(name, ++index);
+        nameMapBuilder.put(name, index++);
       }
 
       this.nameMap = Collections.unmodifiableMap(nameMapBuilder);
@@ -69,19 +133,28 @@ public class ArkArchive {
     return nameTable != null;
   }
 
+  public boolean hasInstanceInNameTable() {
+    return instanceInTable;
+  }
+
   protected ArkName getNameFromTable() {
     int id = mbb.getInt();
+    int internalId = id - nameOffset;
 
-    if (id < 1 || id > nameTable.size()) {
-      System.err.println("Found invalid nametable index " + id + " at " + Integer.toHexString(mbb.position() - 4));
+    if (internalId < 0 || internalId >= nameTable.size()) {
+      debugMessage(LoggerHelper.format("Found invalid nametable index %d (%d)", id, internalId), -4);
       return null;
     }
 
-    String name = nameTable.get(id - 1);
-    int instance = mbb.getInt();
+    String name = nameTable.get(internalId);
+    if (instanceInTable) {
+      return ArkName.from(name);
+    } else {
+      int instance = mbb.getInt();
 
-    // Get or create ArkName
-    return ArkName.from(name, instance);
+      // Get or create ArkName
+      return ArkName.from(name, instance);
+    }
   }
 
   public String getString() {
@@ -106,14 +179,14 @@ public class ArkArchive {
     int readSize = multibyte ? absSize * 2 : absSize;
 
     if (readSize + mbb.position() > mbb.limit()) {
-      LOGGER.log(Level.SEVERE, LoggerHelper.format("Trying to read %d bytes at %h with just %d bytes left", readSize, mbb.position() - 4, mbb.limit() - mbb.position()));
-      throw new BufferOverflowException();
+      debugMessage(LoggerHelper.format("Trying to read %d bytes with just %d bytes left", readSize, mbb.limit() - mbb.position()));
+      throw new BufferUnderflowException();
     }
 
     boolean isLarge = absSize > BUFFER_LENGTH;
 
-    if (isLarge) {
-      LOGGER.log(Level.INFO, LoggerHelper.format("Large String (%d) at %h", absSize, mbb.position() - 4));
+    if (isLarge && reportLargeStrings) {
+      debugMessage(LoggerHelper.format("String (%d) larger than internal Buffer (%d)", absSize, BUFFER_LENGTH));
     }
 
     if (multibyte) {
@@ -133,7 +206,7 @@ public class ArkArchive {
   }
 
   public ArkName getName() {
-    if (!hasNameTable()) {
+    if (!hasNameTable() || !useNameTable) {
       return ArkName.from(getString());
     } else {
       return getNameFromTable();
@@ -147,19 +220,27 @@ public class ArkArchive {
     int absSize = Math.abs(size);
     int readSize = multibyte ? absSize * 2 : absSize;
 
-    if (absSize > 10000) {
-      LOGGER.log(Level.INFO, LoggerHelper.format("Large String (%d) at %h", absSize, mbb.position() - 4));
+    if (readSize + mbb.position() > mbb.limit()) {
+      debugMessage(LoggerHelper.format("Trying to skip %d bytes with just %d bytes left", readSize, mbb.limit() - mbb.position()));
+      throw new BufferUnderflowException();
     }
 
-    if (readSize + mbb.position() > mbb.limit()) {
-      LOGGER.log(Level.SEVERE, LoggerHelper.format("Trying to skip %d bytes at %h with just %d bytes left", readSize, mbb.position() - 4, mbb.limit() - mbb.position()));
-      throw new BufferOverflowException();
+    if (absSize > BUFFER_LENGTH && reportLargeStrings) {
+      debugMessage(LoggerHelper.format("String (%d) larger than internal Buffer (%d)", absSize, BUFFER_LENGTH));
     }
 
     mbb.position(mbb.position() + readSize);
   }
 
   public void skipBytes(int count) {
+    if (count + mbb.position() > mbb.limit()) {
+      debugMessage(LoggerHelper.format("Trying to skip %d bytes with just %d bytes left", count, mbb.limit() - mbb.position()));
+      throw new BufferUnderflowException();
+    } else if (count + mbb.position() < 0) {
+      debugMessage(LoggerHelper.format("Trying to unskip %d bytes with just %d bytes left", count, mbb.position()));
+      throw new BufferUnderflowException();
+    }
+
     mbb.position(mbb.position() + count);
   }
 
@@ -218,7 +299,7 @@ public class ArkArchive {
   public boolean getBoolean() {
     int val = mbb.getInt();
     if (val < 0 || val > 1) {
-      LOGGER.log(Level.INFO, LoggerHelper.format("Boolean at %h with value %d, returning true", mbb.position() - 4, val));
+      debugMessage(LoggerHelper.format("Boolean with value %d, returning true", val), -4);
     }
     return val != 0;
   }
@@ -233,15 +314,24 @@ public class ArkArchive {
    * @param name
    */
   protected void putNameIntoTable(ArkName name) {
-    // index is 1 based
-    int index = nameMap.getOrDefault(name.getName(), 0);
+    if (instanceInTable) {
+      Integer index = nameMap.get(name.toString());
 
-    if (index == 0) {
-      throw new UnsupportedOperationException("Uncollected Name: " + name.getName());
+      if (index == null) {
+        throw new UnsupportedOperationException("Uncollected Name: " + name);
+      }
+
+      mbb.putInt(index);
+    } else {
+      Integer index = nameMap.get(name.getName());
+
+      if (index == null) {
+        throw new UnsupportedOperationException("Uncollected Name: " + name.getName());
+      }
+
+      mbb.putInt(index);
+      mbb.putInt(name.getInstance());
     }
-
-    mbb.putInt(index);
-    mbb.putInt(name.getInstance());
   }
 
   /**
@@ -283,7 +373,7 @@ public class ArkArchive {
    * @param name
    */
   public void putName(ArkName name) {
-    if (hasNameTable()) {
+    if (hasNameTable() && useNameTable) {
       putNameIntoTable(name);
     } else {
       putString(name.toString());
@@ -369,25 +459,107 @@ public class ArkArchive {
   }
 
   /**
-   * Set the unknownNames flag to true
+   * Set the unknownNames flag to true, except for slices.
+   * Slices have either their own nameTable or no nameTable at all.
    */
   public void unknownNames() {
-    state.unknownNames = true;
+    if (isSlice) {
+      state.unknownData = true;
+    } else {
+      state.unknownNames = true;
+    }
   }
 
   /**
-   * Determines how many bytes {@code value} will need if written to disk.
-   * 
-   * @param value The {@link ArkName} to get the size of
-   * @param nameTable <tt>true</tt> if the ArkArchive will have a nameTable
-   * @return The amount of bytes needed to store {@code value}
+   * Enable or disable the current nameTable
+   * @param use
    */
-  public static int getNameLength(ArkName value, boolean nameTable) {
-    if (nameTable) {
-      return 8;
-    } else {
-      return getStringLength(value.toString());
+  public void setUseNameTable(boolean use) {
+    this.useNameTable = use;
+  }
+
+  /**
+   * Returns true if the current nameTable will be used to read ArkName values
+   * @return
+   */
+  public boolean useNameTable() {
+    return useNameTable;
+  }
+
+  public ArkArchive clone() {
+    return new ArkArchive(this);
+  }
+
+  public ArkArchive slice(int size) {
+    return new ArkArchive(this, size);
+  }
+
+  public int getTotalOffset() {
+    return totalOffset;
+  }
+
+  public int getTotalPosition() {
+    return totalOffset + mbb.position();
+  }
+
+  /**
+   * Debug utility
+   */
+  public void debugMessage() {
+    debugMessage("Current position", 0);
+  }
+
+  /**
+   * Debug utility
+   */
+  public void debugMessage(String message) {
+    debugMessage(message, 0);
+  }
+
+  public void debugMessage(String message, int offset) {
+    if (debugOutput == null) {
+      return;
     }
+
+    debugOutput.print(message);
+    debugOutput.print(" at 0x");
+    debugOutput.print(Integer.toHexString(mbb.position() + offset));
+    if (totalOffset > 0) {
+      debugOutput.print(" (0x");
+      debugOutput.print(Integer.toHexString(getTotalPosition() + offset));
+      debugOutput.print(")");
+    }
+    if (sourceFile != null) {
+      debugOutput.print(" in ");
+      debugOutput.print(sourceFile);
+    }
+    debugOutput.println();
+  }
+
+  /**
+   * Debug utility
+   */
+  public void debugMessage(Supplier<String> messageSupplier) {
+    if (debugOutput == null) {
+      return;
+    }
+
+    debugMessage(messageSupplier.get(), 0);
+  }
+
+  /**
+   * Debug utility
+   */
+  public void debugMessage(Supplier<String> messageSupplier, int offset) {
+    if (debugOutput == null) {
+      return;
+    }
+
+    debugMessage(messageSupplier.get(), offset);
+  }
+
+  public NameSizeCalculator getNameSizer() {
+    return getNameSizer(nameTable != null && useNameTable, instanceInTable);
   }
 
   /**
@@ -407,6 +579,28 @@ public class ArkArchive {
     boolean multibyte = !isAscii(value);
 
     return (multibyte ? length * 2 : length) + 4;
+  }
+
+  private static final NameSizeCalculator TABLE_WITH_INSTANCE = name -> 4;
+
+  private static final NameSizeCalculator TABLE_WITHOUT_INSTANCE = name -> 8;
+
+  private static final NameSizeCalculator WITHOUT_TABLE = name -> ArkArchive.getStringLength(name.toString());
+
+  public static NameSizeCalculator getNameSizer(boolean nameTable) {
+    return getNameSizer(nameTable, false);
+  }
+
+  public static NameSizeCalculator getNameSizer(boolean nameTable, boolean instanceInTable) {
+    if (nameTable) {
+      if (instanceInTable) {
+        return TABLE_WITH_INSTANCE;
+      } else {
+        return TABLE_WITHOUT_INSTANCE;
+      }
+    } else {
+      return WITHOUT_TABLE;
+    }
   }
 
   private static boolean isAscii(String value) {

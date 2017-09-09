@@ -3,11 +3,12 @@ package qowyn.ark.data;
 import javax.json.JsonValue;
 
 import qowyn.ark.ArkArchive;
+import qowyn.ark.NameSizeCalculator;
 
 public class ExtraDataZero implements ExtraData {
 
   @Override
-  public int calculateSize(boolean nameTable) {
+  public int calculateSize(NameSizeCalculator nameSizer) {
     return 4;
   }
 

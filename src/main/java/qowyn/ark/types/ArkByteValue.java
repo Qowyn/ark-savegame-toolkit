@@ -1,13 +1,13 @@
 package qowyn.ark.types;
 
-import java.util.Set;
-
 import javax.json.JsonNumber;
 import javax.json.JsonString;
 import javax.json.JsonValue;
 
 import qowyn.ark.ArkArchive;
+import qowyn.ark.NameCollector;
 import qowyn.ark.NameContainer;
+import qowyn.ark.NameSizeCalculator;
 import qowyn.ark.json.SimpleJsonInteger;
 import qowyn.ark.json.SimpleJsonString;
 
@@ -72,8 +72,8 @@ public final class ArkByteValue implements NameContainer {
     }
   }
 
-  public int getSize(boolean nameTable) {
-    return nameValue != null ? ArkArchive.getNameLength(nameValue, nameTable) : 1;
+  public int getSize(NameSizeCalculator nameSizer) {
+    return nameValue != null ? nameSizer.sizeOf(nameValue) : 1;
   }
 
   public void read(ArkArchive archive, boolean name) {
@@ -93,9 +93,9 @@ public final class ArkByteValue implements NameContainer {
   }
 
   @Override
-  public void collectNames(Set<String> nameTable) {
+  public void collectNames(NameCollector collector) {
     if (nameValue != null) {
-      nameTable.add(nameValue.getName());
+      collector.accept(nameValue);
     }
   }
 

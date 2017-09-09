@@ -1,11 +1,11 @@
 package qowyn.ark.properties;
 
-import java.util.Set;
-
 import javax.json.JsonObject;
 import javax.json.JsonObjectBuilder;
 
 import qowyn.ark.ArkArchive;
+import qowyn.ark.NameCollector;
+import qowyn.ark.NameSizeCalculator;
 import qowyn.ark.types.ArkName;
 import qowyn.ark.types.ObjectReference;
 
@@ -52,8 +52,8 @@ public class PropertyObject extends PropertyBase<ObjectReference> {
   }
 
   @Override
-  public int calculateDataSize(boolean nameTable) {
-    return value.getSize(nameTable);
+  public int calculateDataSize(NameSizeCalculator nameSizer) {
+    return value.getSize(nameSizer);
   }
 
   @Override
@@ -62,9 +62,9 @@ public class PropertyObject extends PropertyBase<ObjectReference> {
   }
 
   @Override
-  public void collectNames(Set<String> nameTable) {
-    super.collectNames(nameTable);
-    value.collectNames(nameTable);
+  public void collectNames(NameCollector collector) {
+    super.collectNames(collector);
+    value.collectNames(collector);
   }
 
 }

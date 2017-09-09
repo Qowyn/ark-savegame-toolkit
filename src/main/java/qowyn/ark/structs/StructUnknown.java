@@ -6,6 +6,7 @@ import javax.json.JsonString;
 import javax.json.JsonValue;
 
 import qowyn.ark.ArkArchive;
+import qowyn.ark.NameSizeCalculator;
 import qowyn.ark.json.SimpleJsonString;
 
 public class StructUnknown extends StructBase {
@@ -36,9 +37,8 @@ public class StructUnknown extends StructBase {
   }
 
   @Override
-  public int getSize(boolean nameTable) {
-    // TODO Auto-generated method stub
-    return 0;
+  public int getSize(NameSizeCalculator nameSizer) {
+    return value.length;
   }
 
 }
