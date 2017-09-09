@@ -73,16 +73,18 @@ public class ArkLocalProfile implements PropertyContainer, GameObjectContainer {
   public void readBinary(ArkArchive archive) {
     localProfileVersion = archive.getInt();
 
-    if (localProfileVersion != 1 && localProfileVersion != 3) {
+    if (localProfileVersion != 1 && localProfileVersion != 3 && localProfileVersion != 4) {
       throw new UnsupportedOperationException("Unknown Profile Version " + localProfileVersion);
     }
 
-    int unknownDataSize = archive.getInt();
+    if (localProfileVersion < 4) {
+      int unknownDataSize = archive.getInt();
 
-    unknownData = archive.getBytes(unknownDataSize);
+      unknownData = archive.getBytes(unknownDataSize);
 
-    if (localProfileVersion == 3) {
-      unknownData2 = archive.getBytes(UNKNOWN_DATA_2_SIZE);
+      if (localProfileVersion == 3) {
+        unknownData2 = archive.getBytes(UNKNOWN_DATA_2_SIZE);
+      }
     }
 
     int objectCount = archive.getInt();
@@ -103,24 +105,30 @@ public class ArkLocalProfile implements PropertyContainer, GameObjectContainer {
   public void writeBinary(String fileName) throws FileNotFoundException, IOException {
     writeBinary(fileName, WritingOptions.create());
   }
-
+  
   public void writeBinary(String fileName, WritingOptions options) throws FileNotFoundException, IOException {
-    if (localProfileVersion == 3) {
-      if (unknownData2 == null) {
-        unknownData2 = new byte[UNKNOWN_DATA_2_SIZE];
-      } else if (unknownData2.length < UNKNOWN_DATA_2_SIZE) {
-        byte[] temp = new byte[UNKNOWN_DATA_2_SIZE];
-        System.arraycopy(unknownData2, 0, temp, 0, unknownData2.length);
-        unknownData2 = temp;
+    int size;
+
+    if (localProfileVersion > 3) {
+      size = Integer.BYTES * 2;
+    } else {
+      size = Integer.BYTES * 3;
+
+      if (localProfileVersion == 3) {
+        if (unknownData2 == null) {
+          unknownData2 = new byte[UNKNOWN_DATA_2_SIZE];
+        } else if (unknownData2.length < UNKNOWN_DATA_2_SIZE) {
+          byte[] temp = new byte[UNKNOWN_DATA_2_SIZE];
+          System.arraycopy(unknownData2, 0, temp, 0, unknownData2.length);
+          unknownData2 = temp;
+        }
       }
-    }
 
-    int size = Integer.BYTES * 3;
+      size += unknownData.length;
 
-    size += unknownData.length;
-
-    if (localProfileVersion == 3) {
-      size += 12;
+      if (localProfileVersion == 3) {
+        size += UNKNOWN_DATA_2_SIZE;
+      }
     }
 
     NameSizeCalculator nameSizer = ArkArchive.getNameSizer(false);
@@ -144,11 +152,13 @@ public class ArkLocalProfile implements PropertyContainer, GameObjectContainer {
 
       archive.putInt(localProfileVersion);
 
-      archive.putInt(unknownData.length);
-      archive.putBytes(unknownData);
+      if (localProfileVersion < 4) {
+        archive.putInt(unknownData.length);
+        archive.putBytes(unknownData);
 
-      if (localProfileVersion == 3) {
-        archive.putBytes(unknownData2, 0, UNKNOWN_DATA_2_SIZE);
+        if (localProfileVersion == 3) {
+          archive.putBytes(unknownData2, 0, UNKNOWN_DATA_2_SIZE);
+        }
       }
 
       archive.putInt(objects.size());
@@ -218,7 +228,9 @@ public class ArkLocalProfile implements PropertyContainer, GameObjectContainer {
       job.add("objects", additionalObjects.build());
     }
 
-    job.add("unknownData", ENCODER.encodeToString(unknownData));
+    if (unknownData != null) {
+      job.add("unknownData", ENCODER.encodeToString(unknownData));
+    }
     if (unknownData2 != null) {
       job.add("unknownData2", ENCODER.encodeToString(unknownData2));
     }
