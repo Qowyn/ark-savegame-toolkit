@@ -90,6 +90,7 @@ public class StructPropertyList extends StructBase implements PropertyContainer 
   @Override
   public void collectNames(NameCollector collector) {
     properties.forEach(p -> p.collectNames(collector));
+    collector.accept(ArkName.NAME_NONE);
   }
 
 }

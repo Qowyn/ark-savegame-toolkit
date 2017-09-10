@@ -49,6 +49,11 @@ public class GameObject implements PropertyContainer, NameContainer {
 
   private LocationData locationData;
 
+  /**
+   * Cached propertiesSize, avoids calculating the size of properties twice
+   */
+  protected int propertiesSize;
+
   protected int propertiesOffset;
 
   protected List<Property<?>> properties = new ArrayList<>();
@@ -275,6 +280,11 @@ public class GameObject implements PropertyContainer, NameContainer {
     return size;
   }
 
+  /**
+   * Calculates the size of the property block and caches the resulting value
+   * @param nameSizer
+   * @return
+   */
   public int getPropertiesSize(NameSizeCalculator nameSizer) {
     int size = nameSizer.sizeOf(ArkName.NAME_NONE);
 
@@ -284,6 +294,7 @@ public class GameObject implements PropertyContainer, NameContainer {
       size += extraData.calculateSize(nameSizer);
     }
 
+    propertiesSize = size;
     return size;
   }
 
@@ -393,7 +404,7 @@ public class GameObject implements PropertyContainer, NameContainer {
     archive.putInt(propertiesOffset);
     archive.putInt(0);
 
-    return offset + getPropertiesSize(archive.getNameSizer());
+    return offset + propertiesSize;
   }
 
   @Override
@@ -405,6 +416,24 @@ public class GameObject implements PropertyContainer, NameContainer {
     }
 
     properties.forEach(property -> property.collectNames(collector));
+    collector.accept(ArkName.NAME_NONE);
+
+    if (extraData instanceof NameContainer) {
+      ((NameContainer) extraData).collectNames(collector);
+    }
+  }
+
+  public void collectBaseNames(NameCollector collector) {
+    collector.accept(className);
+
+    if (names != null) {
+      names.forEach(name -> collector.accept(name));
+    }
+  }
+
+  public void collectPropertyNames(NameCollector collector) {
+    properties.forEach(property -> property.collectNames(collector));
+    collector.accept(ArkName.NAME_NONE);
 
     if (extraData instanceof NameContainer) {
       ((NameContainer) extraData).collectNames(collector);
