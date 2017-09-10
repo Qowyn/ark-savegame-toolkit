@@ -61,7 +61,7 @@ public class ArkCloudInventory implements PropertyContainer, GameObjectContainer
   public void readBinary(ArkArchive archive) {
     inventoryVersion = archive.getInt();
 
-    if (inventoryVersion != 1 && inventoryVersion != 3) {
+    if (inventoryVersion < 1 || inventoryVersion > 4) {
       throw new UnsupportedOperationException("Unknown Cloud Inventory Version " + inventoryVersion);
     }
 
