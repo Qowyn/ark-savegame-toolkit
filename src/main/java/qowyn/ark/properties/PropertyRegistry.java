@@ -3,9 +3,10 @@ package qowyn.ark.properties;
 import java.util.HashMap;
 import java.util.Map;
 
-import javax.json.JsonObject;
+import com.fasterxml.jackson.databind.JsonNode;
 
 import qowyn.ark.ArkArchive;
+import qowyn.ark.LoggerHelper;
 import qowyn.ark.types.ArkName;
 
 public class PropertyRegistry {
@@ -33,13 +34,12 @@ public class PropertyRegistry {
     addProperty(PropertyBool.TYPE, PropertyBool::new, PropertyBool::new);
     addProperty(PropertyStr.TYPE, PropertyStr::new, PropertyStr::new);
     addProperty(PropertyName.TYPE, PropertyName::new, PropertyName::new);
-    addProperty(PropertyText.TYPE, PropertyText::new, PropertyText::new);
     addProperty(PropertyObject.TYPE, PropertyObject::new, PropertyObject::new);
     addProperty(PropertyArray.TYPE, PropertyArray::new, PropertyArray::new);
     addProperty(PropertyStruct.TYPE, PropertyStruct::new, PropertyStruct::new);
   }
 
-  public static Property<?> readProperty(ArkArchive archive) {
+  public static Property<?> readBinary(ArkArchive archive) {
     ArkName name = archive.getName();
 
     if (name == null || name.toString().isEmpty()) {
@@ -54,7 +54,7 @@ public class PropertyRegistry {
     ArkName type = archive.getName();
 
     if (!TYPE_MAP.containsKey(type)) {
-      System.err.println("Warning: Unknown property type " + type + " near " + Integer.toHexString(archive.position()) + ".");
+      archive.debugMessage(LoggerHelper.format("Unknown property type %s", type));
       archive.unknownNames();
       return new PropertyUnknown(archive, name, type);
     }
@@ -62,10 +62,10 @@ public class PropertyRegistry {
     return TYPE_MAP.get(type).apply(archive, name);
   }
 
-  public static Property<?> fromJSON(JsonObject o) {
-    ArkName type = ArkName.from(o.getString("type"));
+  public static Property<?> readJson(JsonNode node) {
+    ArkName type = ArkName.from(node.path("type").asText());
 
-    return TYPE_JSON_MAP.getOrDefault(type, PropertyUnknown::new).apply(o);
+    return TYPE_JSON_MAP.getOrDefault(type, PropertyUnknown::new).apply(node);
   }
 
 }

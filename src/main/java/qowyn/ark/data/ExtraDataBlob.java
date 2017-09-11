@@ -1,16 +1,13 @@
 package qowyn.ark.data;
 
-import java.util.Base64;
+import java.io.IOException;
 
-import javax.json.JsonValue;
+import com.fasterxml.jackson.core.JsonGenerator;
 
 import qowyn.ark.ArkArchive;
 import qowyn.ark.NameSizeCalculator;
-import qowyn.ark.json.SimpleJsonString;
 
 public class ExtraDataBlob implements ExtraData {
-
-  private static final Base64.Encoder ENCODER = Base64.getEncoder();
 
   private byte[] data;
 
@@ -28,12 +25,12 @@ public class ExtraDataBlob implements ExtraData {
   }
 
   @Override
-  public JsonValue toJson() {
-    return data != null ? new SimpleJsonString(ENCODER.encodeToString(data)) : JsonValue.NULL;
+  public void writeJson(JsonGenerator generator) throws IOException {
+    generator.writeBinary(data);
   }
 
   @Override
-  public void write(ArkArchive archive) {
+  public void writeBinary(ArkArchive archive) {
     if (data != null) {
       archive.putBytes(data);
     }

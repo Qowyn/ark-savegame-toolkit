@@ -4,16 +4,14 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.List;
 
-import javax.json.Json;
-import javax.json.JsonArray;
-import javax.json.JsonArrayBuilder;
-import javax.json.JsonObject;
-import javax.json.JsonObjectBuilder;
+import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.databind.JsonNode;
 
 import qowyn.ark.properties.Property;
 
@@ -32,7 +30,8 @@ public class ArkProfile implements PropertyContainer, GameObjectContainer {
   }
 
   public ArkProfile(String fileName, ReadingOptions options) throws FileNotFoundException, IOException {
-    try (FileChannel fc = FileChannel.open(Paths.get(fileName), StandardOpenOption.READ)) {
+    Path filePath = Paths.get(fileName);
+    try (FileChannel fc = FileChannel.open(filePath, StandardOpenOption.READ)) {
       if (fc.size() > Integer.MAX_VALUE) {
         throw new RuntimeException("Input file is too large.");
       }
@@ -49,13 +48,13 @@ public class ArkProfile implements PropertyContainer, GameObjectContainer {
         }
         buffer.clear();
       }
-      ArkArchive archive = new ArkArchive(buffer);
+      ArkArchive archive = new ArkArchive(buffer, filePath);
       readBinary(archive);
     }
   }
 
-  public ArkProfile(JsonObject object) {
-    readJson(object);
+  public ArkProfile(JsonNode node) {
+    readJson(node);
   }
 
   public void readBinary(ArkArchive archive) {
@@ -95,7 +94,8 @@ public class ArkProfile implements PropertyContainer, GameObjectContainer {
 
     size += objects.stream().mapToInt(object -> object.getPropertiesSize(nameSizer)).sum();
 
-    try (FileChannel fc = FileChannel.open(Paths.get(fileName), StandardOpenOption.CREATE, StandardOpenOption.READ, StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING)) {
+    Path filePath = Paths.get(fileName);
+    try (FileChannel fc = FileChannel.open(filePath, StandardOpenOption.CREATE, StandardOpenOption.READ, StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING)) {
       ByteBuffer buffer;
 
       if (options.usesMemoryMapping()) {
@@ -104,13 +104,13 @@ public class ArkProfile implements PropertyContainer, GameObjectContainer {
         buffer = ByteBuffer.allocateDirect(size);
       }
 
-      ArkArchive archive = new ArkArchive(buffer);
+      ArkArchive archive = new ArkArchive(buffer, filePath);
 
       archive.putInt(profileVersion);
       archive.putInt(objects.size());
 
       for (GameObject object : objects) {
-        propertiesBlockOffset = object.write(archive, propertiesBlockOffset);
+        propertiesBlockOffset = object.writeBinary(archive, propertiesBlockOffset);
       }
 
       for (GameObject object : objects) {
@@ -129,42 +129,45 @@ public class ArkProfile implements PropertyContainer, GameObjectContainer {
     }
   }
 
-  public void readJson(JsonObject object) {
-    profileVersion = object.getInt("profileVersion");
+  public void readJson(JsonNode node) {
+    profileVersion = node.path("profileVersion").asInt();
     objects.clear();
 
-    JsonObject profile = object.getJsonObject("profile");
-    if (profile != null) {
-      setProfile(new GameObject(profile));
+    if (node.hasNonNull("profile")) {
+      setProfile(new GameObject(node.get("profile")));
     }
 
-    JsonArray profileObjects = object.getJsonArray("objects");
-    if (profileObjects != null) {
-      for (JsonObject profileObject : profileObjects.getValuesAs(JsonObject.class)) {
-        objects.add(new GameObject(profileObject));
+    if (node.hasNonNull("objects")) {
+      for (JsonNode tribeObject : node.get("objects")) {
+        objects.add(new GameObject(tribeObject));
       }
     }
   }
 
-  public JsonObject toJson() {
-    JsonObjectBuilder job = Json.createObjectBuilder();
+  public void writeJson(JsonGenerator generator) throws IOException {
+    generator.writeStartObject();
 
-    job.add("profileVersion", profileVersion);
-    job.add("profile", profile.toJson());
+    generator.writeNumberField("profileVersion", profileVersion);
+    generator.writeFieldName("profile");
+    if (profile != null) {
+      profile.writeJson(generator, true);
+    } else {
+      generator.writeNull();
+    }
 
     if (objects.size() > 1) {
-      JsonArrayBuilder additionalObjects = Json.createArrayBuilder();
+      generator.writeArrayFieldStart("objects");
       for (GameObject object : objects) {
         if (object == profile) {
           continue;
         }
 
-        additionalObjects.add(object.toJson());
+        object.writeJson(generator, true);
       }
-      job.add("objects", additionalObjects.build());
+      generator.writeEndArray();
     }
 
-    return job.build();
+    generator.writeEndObject();
   }
 
   public int getProfileVersion() {

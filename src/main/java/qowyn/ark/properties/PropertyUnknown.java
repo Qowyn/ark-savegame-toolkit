@@ -1,19 +1,15 @@
 package qowyn.ark.properties;
 
-import java.util.Base64;
+import java.io.IOException;
 
-import javax.json.JsonObject;
-import javax.json.JsonObjectBuilder;
+import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.databind.JsonNode;
 
 import qowyn.ark.ArkArchive;
 import qowyn.ark.NameSizeCalculator;
 import qowyn.ark.types.ArkName;
 
 public class PropertyUnknown extends PropertyBase<byte[]> {
-
-  private static final Base64.Decoder DECODER = Base64.getDecoder();
-
-  private static final Base64.Encoder ENCODER = Base64.getEncoder();
 
   private final ArkName type;
 
@@ -23,10 +19,14 @@ public class PropertyUnknown extends PropertyBase<byte[]> {
     value = archive.getBytes(dataSize);
   }
 
-  public PropertyUnknown(JsonObject o) {
-    super(o);
-    this.type = ArkName.from(o.getString("type"));
-    value = DECODER.decode(o.getString("value"));
+  public PropertyUnknown(JsonNode node) {
+    super(node);
+    this.type = ArkName.from(node.path("type").asText());
+    try {
+      value = node.path("value").binaryValue();
+    } catch (IOException ex) {
+      throw new UnreadablePropertyException(ex);
+    }
   }
 
   @Override
@@ -45,13 +45,13 @@ public class PropertyUnknown extends PropertyBase<byte[]> {
   }
 
   @Override
-  protected void serializeValue(JsonObjectBuilder job) {
-    job.add("value", ENCODER.encodeToString(value));
+  protected void writeBinaryValue(ArkArchive archive) {
+    archive.putBytes(value);
   }
 
   @Override
-  protected void writeValue(ArkArchive archive) {
-    archive.putBytes(value);
+  protected void writeJsonValue(JsonGenerator generator) throws IOException {
+    generator.writeBinaryField("value", value);
   }
 
   @Override

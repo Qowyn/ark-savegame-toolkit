@@ -1,15 +1,14 @@
 package qowyn.ark.types;
 
-import javax.json.JsonNumber;
-import javax.json.JsonString;
-import javax.json.JsonValue;
+import java.io.IOException;
+
+import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.databind.JsonNode;
 
 import qowyn.ark.ArkArchive;
 import qowyn.ark.NameCollector;
 import qowyn.ark.NameContainer;
 import qowyn.ark.NameSizeCalculator;
-import qowyn.ark.json.SimpleJsonInteger;
-import qowyn.ark.json.SimpleJsonString;
 
 public final class ArkByteValue implements NameContainer {
 
@@ -28,11 +27,11 @@ public final class ArkByteValue implements NameContainer {
   }
 
   public ArkByteValue(ArkArchive archive, boolean name) {
-    read(archive, name);
+    readBinary(archive, name);
   }
 
-  public ArkByteValue(JsonValue v) {
-    fromJson(v);
+  public ArkByteValue(JsonNode node) {
+    readJson(node);
   }
 
   public boolean isFromEnum() {
@@ -56,19 +55,19 @@ public final class ArkByteValue implements NameContainer {
     this.nameValue = nameValue;
   }
 
-  public void fromJson(JsonValue v) {
-    if (v instanceof JsonString) {
-      this.nameValue = ArkName.from(((JsonString) v).getString());
+  public void readJson(JsonNode node) {
+    if (node.isTextual()) {
+      this.nameValue = ArkName.from(node.asText());
     } else {
-      this.byteValue = (byte) ((JsonNumber) v).intValue();
+      this.byteValue = (byte) node.asInt();
     }
   }
 
-  public JsonValue toJson() {
+  public void writeJson(JsonGenerator generator) throws IOException {
     if (nameValue != null) {
-      return new SimpleJsonString(nameValue.toString());
+      generator.writeString(nameValue.toString());
     } else {
-      return new SimpleJsonInteger(byteValue);
+      generator.writeNumber(byteValue);
     }
   }
 
@@ -76,7 +75,7 @@ public final class ArkByteValue implements NameContainer {
     return nameValue != null ? nameSizer.sizeOf(nameValue) : 1;
   }
 
-  public void read(ArkArchive archive, boolean name) {
+  public void readBinary(ArkArchive archive, boolean name) {
     if (name) {
       this.nameValue = archive.getName();
     } else {
@@ -84,7 +83,7 @@ public final class ArkByteValue implements NameContainer {
     }
   }
 
-  public void write(ArkArchive archive) {
+  public void writeBinary(ArkArchive archive) {
     if (nameValue != null) {
       archive.putName(nameValue);
     } else {

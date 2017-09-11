@@ -3,7 +3,7 @@ package qowyn.ark.arrays;
 import java.util.HashMap;
 import java.util.Map;
 
-import javax.json.JsonArray;
+import com.fasterxml.jackson.databind.JsonNode;
 
 import qowyn.ark.ArkArchive;
 import qowyn.ark.properties.PropertyArray;
@@ -39,7 +39,7 @@ public final class ArkArrayRegistry {
     addArray(ArkArrayStruct.TYPE, ArkArrayStruct::new, ArkArrayStruct::new);
   }
 
-  public static ArkArray<?> read(ArkArchive archive, ArkName arrayType, PropertyArray property) {
+  public static ArkArray<?> readBinary(ArkArchive archive, ArkName arrayType, PropertyArray property) {
     if (ARRAY_TYPE_MAP.containsKey(arrayType)) {
       return ARRAY_TYPE_MAP.get(arrayType).apply(archive, property);
     } else {
@@ -47,9 +47,9 @@ public final class ArkArrayRegistry {
     }
   }
 
-  public static ArkArray<?> read(JsonArray a, ArkName arrayType, PropertyArray property) {
+  public static ArkArray<?> readJson(JsonNode node, ArkName arrayType, PropertyArray property) {
     if (ARRAY_JSON_TYPE_MAP.containsKey(arrayType)) {
-      return ARRAY_JSON_TYPE_MAP.get(arrayType).apply(a, property);
+      return ARRAY_JSON_TYPE_MAP.get(arrayType).apply(node, property);
     } else {
       throw new UnreadablePropertyException("Unknown Array Type " + arrayType);
     }

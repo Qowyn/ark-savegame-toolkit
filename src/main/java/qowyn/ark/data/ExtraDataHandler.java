@@ -1,6 +1,6 @@
 package qowyn.ark.data;
 
-import javax.json.JsonValue;
+import com.fasterxml.jackson.databind.JsonNode;
 
 import qowyn.ark.ArkArchive;
 import qowyn.ark.GameObject;
@@ -9,10 +9,10 @@ public interface ExtraDataHandler {
 
   public boolean canHandle(GameObject object, int length);
 
-  public boolean canHandle(GameObject object, JsonValue value);
+  public boolean canHandle(GameObject object, JsonNode node);
 
-  public ExtraData read(GameObject object, ArkArchive archive, int length) throws UnexpectedDataException;
+  public ExtraData readBinary(GameObject object, ArkArchive archive, int length) throws UnexpectedDataException;
 
-  public ExtraData read(GameObject object, JsonValue value);
+  public ExtraData readJson(GameObject object, JsonNode node);
 
 }

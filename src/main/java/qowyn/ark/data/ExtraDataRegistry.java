@@ -3,7 +3,7 @@ package qowyn.ark.data;
 import java.util.ArrayList;
 import java.util.List;
 
-import javax.json.JsonValue;
+import com.fasterxml.jackson.databind.JsonNode;
 
 import qowyn.ark.ArkArchive;
 import qowyn.ark.GameObject;
@@ -38,7 +38,7 @@ public class ExtraDataRegistry {
       for (int i = EXTRA_DATA_HANDLERS.size() - 1; i >= 0; i--) {
         ExtraDataHandler handler = EXTRA_DATA_HANDLERS.get(i);
         if (handler.canHandle(object, length)) {
-          return handler.read(object, archive, length);
+          return handler.readBinary(object, archive, length);
         }
       }
     } catch (UnexpectedDataException ude) {
@@ -46,7 +46,7 @@ public class ExtraDataRegistry {
       ude.printStackTrace();
     }
 
-    return FALLBACK_HANDLER.read(object, archive, length);
+    return FALLBACK_HANDLER.readBinary(object, archive, length);
   }
 
   /**
@@ -57,14 +57,14 @@ public class ExtraDataRegistry {
    * @param value The JsonValue
    * @return
    */
-  public static ExtraData getExtraData(GameObject object, JsonValue value) {
+  public static ExtraData getExtraData(GameObject object, JsonNode node) {
     for (int i = EXTRA_DATA_HANDLERS.size() - 1; i >= 0; i--) {
       ExtraDataHandler handler = EXTRA_DATA_HANDLERS.get(i);
-      if (handler.canHandle(object, value)) {
-        return handler.read(object, value);
+      if (handler.canHandle(object, node)) {
+        return handler.readJson(object, node);
       }
     }
 
-    return FALLBACK_HANDLER.read(object, value);
+    return FALLBACK_HANDLER.readJson(object, node);
   }
 }

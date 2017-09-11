@@ -1,11 +1,11 @@
 package qowyn.ark.properties;
 
-import javax.json.Json;
-import javax.json.JsonObject;
-import javax.json.JsonObjectBuilder;
+import java.io.IOException;
+
+import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.databind.JsonNode;
 
 import qowyn.ark.ArkArchive;
-import qowyn.ark.JsonHelper;
 import qowyn.ark.NameCollector;
 import qowyn.ark.NameSizeCalculator;
 import qowyn.ark.types.ArkName;
@@ -32,10 +32,10 @@ public abstract class PropertyBase<T> implements Property<T> {
     index = archive.getInt();
   }
 
-  public PropertyBase(JsonObject o) {
-    name = ArkName.from(o.getString("name"));
-    dataSize = o.getInt("size", 0);
-    index = o.getInt("index", 0);
+  public PropertyBase(JsonNode node) {
+    name = ArkName.from(node.get("name").asText());
+    dataSize = node.path("size").asInt();
+    index = node.path("index").asInt();
   }
 
   @Override
@@ -113,7 +113,19 @@ public abstract class PropertyBase<T> implements Property<T> {
     return size;
   }
 
-  protected abstract void serializeValue(JsonObjectBuilder job);
+  protected abstract void writeBinaryValue(ArkArchive archive);
+
+  @Override
+  public void writeBinary(ArkArchive archive) {
+    archive.putName(name);
+    archive.putName(getType());
+    archive.putInt(dataSize);
+    archive.putInt(index);
+
+    writeBinaryValue(archive);
+  }
+
+  protected abstract void writeJsonValue(JsonGenerator generator) throws IOException;
 
   /**
    * Determines if the dataSize cannot be calculated and thus needs to be recorded.
@@ -126,31 +138,21 @@ public abstract class PropertyBase<T> implements Property<T> {
   }
 
   @Override
-  public JsonObject toJson() {
-    JsonObjectBuilder job = Json.createObjectBuilder();
+  public void writeJson(JsonGenerator generator) throws IOException {
+    generator.writeStartObject();
 
-    job.add("name", name.toString());
-    job.add("type", getType().toString());
-    if (isDataSizeNeeded()) {
-      JsonHelper.addInt(job, "size", dataSize);
+    generator.writeStringField("name", name.toString());
+    generator.writeStringField("type", getType().toString());
+    if (isDataSizeNeeded() && dataSize != 0) {
+      generator.writeNumberField("size", dataSize);
     }
-    JsonHelper.addInt(job, "index", index);
+    if (index != 0) {
+      generator.writeNumberField("index", index);
+    }
 
-    serializeValue(job);
+    writeJsonValue(generator);
 
-    return job.build();
-  }
-
-  protected abstract void writeValue(ArkArchive archive);
-
-  @Override
-  public void write(ArkArchive archive) {
-    archive.putName(name);
-    archive.putName(getType());
-    archive.putInt(dataSize);
-    archive.putInt(index);
-
-    writeValue(archive);
+    generator.writeEndObject();
   }
 
   @Override

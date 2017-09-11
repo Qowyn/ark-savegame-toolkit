@@ -1,12 +1,11 @@
 package qowyn.ark.structs;
 
-import javax.json.Json;
-import javax.json.JsonObject;
-import javax.json.JsonObjectBuilder;
-import javax.json.JsonValue;
+import java.io.IOException;
+
+import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.databind.JsonNode;
 
 import qowyn.ark.ArkArchive;
-import qowyn.ark.JsonHelper;
 import qowyn.ark.NameSizeCalculator;
 
 public class StructVector2D extends StructBase {
@@ -27,11 +26,9 @@ public class StructVector2D extends StructBase {
     y = archive.getFloat();
   }
 
-  public StructVector2D(JsonValue v) {
-    JsonObject o = (JsonObject) v;
-
-    x = JsonHelper.getFloat(o, "x");
-    y = JsonHelper.getFloat(o, "y");
+  public StructVector2D(JsonNode node) {
+    x = (float) node.path("x").asDouble();
+    y = (float) node.path("y").asDouble();
   }
 
   public float getX() {
@@ -51,17 +48,21 @@ public class StructVector2D extends StructBase {
   }
 
   @Override
-  public JsonObject toJson() {
-    JsonObjectBuilder vectorBuilder = Json.createObjectBuilder();
+  public void writeJson(JsonGenerator generator) throws IOException {
+    generator.writeStartObject();
 
-    JsonHelper.addFloat(vectorBuilder, "x", x);
-    JsonHelper.addFloat(vectorBuilder, "y", y);
+    if (x != 0.0f) {
+      generator.writeNumberField("x", x);
+    }
+    if (y != 0.0f) {
+      generator.writeNumberField("y", y);
+    }
 
-    return vectorBuilder.build();
+    generator.writeEndObject();
   }
 
   @Override
-  public void write(ArkArchive archive) {
+  public void writeBinary(ArkArchive archive) {
     archive.putFloat(x);
     archive.putFloat(y);
   }

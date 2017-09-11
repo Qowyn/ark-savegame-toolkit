@@ -1,11 +1,10 @@
 package qowyn.ark.arrays;
 
+import java.io.IOException;
 import java.util.ArrayList;
 
-import javax.json.Json;
-import javax.json.JsonArray;
-import javax.json.JsonArrayBuilder;
-import javax.json.JsonNumber;
+import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.databind.JsonNode;
 
 import qowyn.ark.ArkArchive;
 import qowyn.ark.NameCollector;
@@ -29,8 +28,8 @@ public class ArkArrayInt64 extends ArrayList<Long> implements ArkArray<Long> {
     }
   }
 
-  public ArkArrayInt64(JsonArray a, PropertyArray property) {
-    a.getValuesAs(JsonNumber.class).forEach(n -> this.add(n.longValue()));
+  public ArkArrayInt64(JsonNode node, PropertyArray property) {
+    node.forEach(n -> this.add(n.asLong()));
   }
 
   @Override
@@ -49,16 +48,18 @@ public class ArkArrayInt64 extends ArrayList<Long> implements ArkArray<Long> {
   }
 
   @Override
-  public JsonArray toJson() {
-    JsonArrayBuilder jab = Json.createArrayBuilder();
+  public void writeJson(JsonGenerator generator) throws IOException {
+    generator.writeStartArray(size());
 
-    this.forEach(n -> jab.add(n));
+    for (long value: this) {
+      generator.writeNumber(value);
+    }
 
-    return jab.build();
+    generator.writeEndArray();
   }
 
   @Override
-  public void write(ArkArchive archive) {
+  public void writeBinary(ArkArchive archive) {
     archive.putInt(size());
 
     this.forEach(archive::putLong);

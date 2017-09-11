@@ -1,7 +1,9 @@
 package qowyn.ark.properties;
 
-import javax.json.JsonObject;
-import javax.json.JsonObjectBuilder;
+import java.io.IOException;
+
+import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.databind.JsonNode;
 
 import qowyn.ark.ArkArchive;
 import qowyn.ark.NameCollector;
@@ -25,9 +27,9 @@ public class PropertyName extends PropertyBase<ArkName> {
     value = archive.getName();
   }
 
-  public PropertyName(JsonObject o) {
-    super(o);
-    value = ArkName.from(o.getString("value"));
+  public PropertyName(JsonNode node) {
+    super(node);
+    value = ArkName.from(node.path("value").asText());
   }
 
   @Override
@@ -41,12 +43,12 @@ public class PropertyName extends PropertyBase<ArkName> {
   }
 
   @Override
-  protected void serializeValue(JsonObjectBuilder job) {
-    job.add("value", value.toString());
+  protected void writeJsonValue(JsonGenerator generator) throws IOException {
+    generator.writeStringField("value", value.toString());
   }
 
   @Override
-  protected void writeValue(ArkArchive archive) {
+  protected void writeBinaryValue(ArkArchive archive) {
     archive.putName(value);
   }
 

@@ -1,9 +1,9 @@
 package qowyn.ark.structs;
 
-import javax.json.Json;
-import javax.json.JsonObject;
-import javax.json.JsonObjectBuilder;
-import javax.json.JsonValue;
+import java.io.IOException;
+
+import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.databind.JsonNode;
 
 import qowyn.ark.ArkArchive;
 import qowyn.ark.NameSizeCalculator;
@@ -26,25 +26,23 @@ public class StructUniqueNetIdRepl extends StructBase {
     netId = archive.getString();
   }
 
-  public StructUniqueNetIdRepl(JsonValue v) {
-    JsonObject object = (JsonObject) v;
-
-    unk = object.getInt("unk", 0);
-    netId = object.getString("netId", "");
+  public StructUniqueNetIdRepl(JsonNode node) {
+    unk = node.path("unk").asInt();
+    netId = node.path("netId").asText();
   }
 
   @Override
-  public JsonValue toJson() {
-    JsonObjectBuilder job = Json.createObjectBuilder();
+  public void writeJson(JsonGenerator generator) throws IOException {
+    generator.writeStartObject();
 
-    job.add("unk", unk);
-    job.add("netId", netId);
+    generator.writeNumberField("unk", unk);
+    generator.writeStringField("netId", netId);
 
-    return job.build();
+    generator.writeEndObject();
   }
 
   @Override
-  public void write(ArkArchive archive) {
+  public void writeBinary(ArkArchive archive) {
     archive.putInt(unk);
     archive.putString(netId);
   }

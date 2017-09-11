@@ -4,12 +4,10 @@ import qowyn.ark.ArkArchive;
 import qowyn.ark.NameSizeCalculator;
 import qowyn.ark.types.ArkName;
 
-import javax.json.JsonNumber;
-import javax.json.JsonObject;
-import javax.json.JsonObjectBuilder;
-import javax.json.JsonString;
-import javax.json.JsonValue;
-import javax.json.JsonValue.ValueType;
+import java.io.IOException;
+
+import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.databind.JsonNode;
 
 public class PropertyDouble extends PropertyBase<Double> {
 
@@ -28,16 +26,9 @@ public class PropertyDouble extends PropertyBase<Double> {
     value = archive.getDouble();
   }
 
-  public PropertyDouble(JsonObject o) {
-    super(o);
-    JsonValue v = o.get("value");
-    if (v.getValueType() == ValueType.STRING) {
-      JsonString s = (JsonString) v;
-      value = Double.valueOf(s.getString());
-    } else {
-      JsonNumber n = (JsonNumber) v;
-      value = n.bigDecimalValue().doubleValue();
-    }
+  public PropertyDouble(JsonNode node) {
+    super(node);
+    value = node.path("value").asDouble();
   }
 
   @Override
@@ -51,16 +42,12 @@ public class PropertyDouble extends PropertyBase<Double> {
   }
 
   @Override
-  protected void serializeValue(JsonObjectBuilder job) {
-    if (Double.isFinite(value)) {
-      job.add("value", value);
-    } else {
-      job.add("value", Double.toString(value));
-    }
+  protected void writeJsonValue(JsonGenerator generator) throws IOException {
+    generator.writeNumberField("value", value);
   }
 
   @Override
-  protected void writeValue(ArkArchive archive) {
+  protected void writeBinaryValue(ArkArchive archive) {
     archive.putDouble(value);
   }
 

@@ -1,12 +1,11 @@
 package qowyn.ark.structs;
 
-import javax.json.Json;
-import javax.json.JsonObject;
-import javax.json.JsonObjectBuilder;
-import javax.json.JsonValue;
+import java.io.IOException;
+
+import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.databind.JsonNode;
 
 import qowyn.ark.ArkArchive;
-import qowyn.ark.JsonHelper;
 import qowyn.ark.NameSizeCalculator;
 
 public class StructQuat extends StructBase {
@@ -35,13 +34,11 @@ public class StructQuat extends StructBase {
     w = archive.getFloat();
   }
 
-  public StructQuat(JsonValue v) {
-    JsonObject o = (JsonObject) v;
-
-    x = JsonHelper.getFloat(o, "x");
-    y = JsonHelper.getFloat(o, "y");
-    z = JsonHelper.getFloat(o, "z");
-    w = JsonHelper.getFloat(o, "w");
+  public StructQuat(JsonNode node) {
+    x = (float) node.path("x").asDouble();
+    y = (float) node.path("y").asDouble();
+    z = (float) node.path("z").asDouble();
+    w = (float) node.path("w").asDouble();
   }
 
   public float getX() {
@@ -77,19 +74,27 @@ public class StructQuat extends StructBase {
   }
 
   @Override
-  public JsonObject toJson() {
-    JsonObjectBuilder vectorBuilder = Json.createObjectBuilder();
+  public void writeJson(JsonGenerator generator) throws IOException {
+    generator.writeStartObject();
 
-    JsonHelper.addFloat(vectorBuilder, "x", x);
-    JsonHelper.addFloat(vectorBuilder, "y", y);
-    JsonHelper.addFloat(vectorBuilder, "z", z);
-    JsonHelper.addFloat(vectorBuilder, "w", w);
+    if (x != 0.0f) {
+      generator.writeNumberField("x", x);
+    }
+    if (y != 0.0f) {
+      generator.writeNumberField("y", y);
+    }
+    if (z != 0.0f) {
+      generator.writeNumberField("z", z);
+    }
+    if (w != 0.0f) {
+      generator.writeNumberField("w", w);
+    }
 
-    return vectorBuilder.build();
+    generator.writeEndObject();
   }
 
   @Override
-  public void write(ArkArchive archive) {
+  public void writeBinary(ArkArchive archive) {
     archive.putFloat(x);
     archive.putFloat(y);
     archive.putFloat(z);

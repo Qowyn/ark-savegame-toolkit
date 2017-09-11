@@ -1,12 +1,11 @@
 package qowyn.ark.structs;
 
-import javax.json.Json;
-import javax.json.JsonObject;
-import javax.json.JsonObjectBuilder;
-import javax.json.JsonValue;
+import java.io.IOException;
+
+import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.databind.JsonNode;
 
 import qowyn.ark.ArkArchive;
-import qowyn.ark.JsonHelper;
 import qowyn.ark.NameSizeCalculator;
 
 public class StructLinearColor extends StructBase {
@@ -35,13 +34,11 @@ public class StructLinearColor extends StructBase {
     a = archive.getFloat();
   }
 
-  public StructLinearColor(JsonValue v) {
-    JsonObject o = (JsonObject) v;
-
-    r = JsonHelper.getFloat(o, "r");
-    g = JsonHelper.getFloat(o, "g");
-    b = JsonHelper.getFloat(o, "b");
-    a = JsonHelper.getFloat(o, "a");
+  public StructLinearColor(JsonNode node) {
+    r = (float) node.path("r").asDouble();
+    g = (float) node.path("g").asDouble();
+    b = (float) node.path("b").asDouble();
+    a = (float) node.path("a").asDouble();
   }
 
   public float getR() {
@@ -77,19 +74,27 @@ public class StructLinearColor extends StructBase {
   }
 
   @Override
-  public JsonObject toJson() {
-    JsonObjectBuilder vectorBuilder = Json.createObjectBuilder();
+  public void writeJson(JsonGenerator generator) throws IOException {
+    generator.writeStartObject();
 
-    JsonHelper.addFloat(vectorBuilder, "r", r);
-    JsonHelper.addFloat(vectorBuilder, "g", g);
-    JsonHelper.addFloat(vectorBuilder, "b", b);
-    JsonHelper.addFloat(vectorBuilder, "a", a);
+    if (r != 0.0f) {
+      generator.writeNumberField("r", r);
+    }
+    if (g != 0.0f) {
+      generator.writeNumberField("g", g);
+    }
+    if (b != 0.0f) {
+      generator.writeNumberField("b", b);
+    }
+    if (a != 0.0f) {
+      generator.writeNumberField("a", a);
+    }
 
-    return vectorBuilder.build();
+    generator.writeEndObject();
   }
 
   @Override
-  public void write(ArkArchive archive) {
+  public void writeBinary(ArkArchive archive) {
     archive.putFloat(r);
     archive.putFloat(g);
     archive.putFloat(b);

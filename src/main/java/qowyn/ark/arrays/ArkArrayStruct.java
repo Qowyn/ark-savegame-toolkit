@@ -1,11 +1,10 @@
 package qowyn.ark.arrays;
 
+import java.io.IOException;
 import java.util.ArrayList;
 
-import javax.json.Json;
-import javax.json.JsonArray;
-import javax.json.JsonArrayBuilder;
-import javax.json.JsonValue;
+import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.databind.JsonNode;
 
 import qowyn.ark.ArkArchive;
 import qowyn.ark.NameCollector;
@@ -44,11 +43,11 @@ public class ArkArrayStruct extends ArrayList<Struct> implements ArkArray<Struct
     }
 
     for (int n = 0; n < size; n++) {
-      add(StructRegistry.read(archive, structType));
+      add(StructRegistry.readBinary(archive, structType));
     }
   }
 
-  public ArkArrayStruct(JsonArray a, PropertyArray property) {
+  public ArkArrayStruct(JsonNode node, PropertyArray property) {
     int size = property.getDataSize();
 
     ArkName structType = StructRegistry.mapArrayNameToTypeName(property.getName());
@@ -62,8 +61,8 @@ public class ArkArrayStruct extends ArrayList<Struct> implements ArkArray<Struct
       }
     }
 
-    for (JsonValue v : a) {
-      add(StructRegistry.read(v, structType));
+    for (JsonNode v: node) {
+      add(StructRegistry.readJson(v, structType));
     }
   }
 
@@ -87,19 +86,21 @@ public class ArkArrayStruct extends ArrayList<Struct> implements ArkArray<Struct
   }
 
   @Override
-  public JsonArray toJson() {
-    JsonArrayBuilder jab = Json.createArrayBuilder();
+  public void writeJson(JsonGenerator generator) throws IOException {
+    generator.writeStartArray(size());
 
-    this.forEach(spl -> jab.add(spl.toJson()));
+    for (Struct value: this) {
+      value.writeJson(generator);
+    }
 
-    return jab.build();
+    generator.writeEndArray();
   }
 
   @Override
-  public void write(ArkArchive archive) {
+  public void writeBinary(ArkArchive archive) {
     archive.putInt(size());
 
-    this.forEach(spl -> spl.write(archive));
+    this.forEach(spl -> spl.writeBinary(archive));
   }
 
   @Override

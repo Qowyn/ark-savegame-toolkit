@@ -1,6 +1,6 @@
 package qowyn.ark.arrays;
 
-import javax.json.JsonArray;
+import com.fasterxml.jackson.databind.JsonNode;
 
 import qowyn.ark.ArkArchive;
 import qowyn.ark.properties.PropertyArray;
@@ -16,8 +16,8 @@ public class ArkArrayUInt8 extends ArkArrayInt8 {
     super(archive, property);
   }
 
-  public ArkArrayUInt8(JsonArray a, PropertyArray property) {
-    super(a, property);
+  public ArkArrayUInt8(JsonNode node, PropertyArray property) {
+    super(node, property);
   }
 
   @Override

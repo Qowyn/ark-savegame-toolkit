@@ -5,10 +5,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import javax.json.JsonArray;
-import javax.json.JsonObject;
-import javax.json.JsonValue;
-import javax.json.JsonValue.ValueType;
+import com.fasterxml.jackson.databind.JsonNode;
 
 import qowyn.ark.ArkArchive;
 import qowyn.ark.GameObject;
@@ -26,12 +23,12 @@ public class ExtraDataFoliageHandler implements ExtraDataHandler {
   }
 
   @Override
-  public boolean canHandle(GameObject object, JsonValue value) {
-    return object.getClassName() == CLASS_NAME && value.getValueType() == ValueType.ARRAY;
+  public boolean canHandle(GameObject object, JsonNode node) {
+    return object.getClassName() == CLASS_NAME && node.isArray();
   }
 
   @Override
-  public ExtraData read(GameObject object, ArkArchive archive, int length) throws UnexpectedDataException {
+  public ExtraData readBinary(GameObject object, ArkArchive archive, int length) throws UnexpectedDataException {
     int shouldBeZero = archive.getInt();
     if (shouldBeZero != 0) {
       throw new UnexpectedDataException("Expected int after properties to be 0 but found " + shouldBeZero + " at " + Integer.toHexString(archive.position() - 4));
@@ -71,19 +68,18 @@ public class ExtraDataFoliageHandler implements ExtraDataHandler {
   }
 
   @Override
-  public ExtraData read(GameObject object, JsonValue value) {
-    List<JsonObject> structMapArray = ((JsonArray) value).getValuesAs(JsonObject.class);
-    int structMapCount = structMapArray.size();
+  public ExtraData readJson(GameObject object, JsonNode node) {
+    int structMapCount = node.size();
 
     List<Map<String, StructPropertyList>> structMapList = new ArrayList<>(structMapCount);
 
-    for (JsonObject structMapJson : structMapArray) {
+    for (JsonNode structMapJson : node) {
       Map<String, StructPropertyList> structMap = new HashMap<>();
 
-      for (Map.Entry<String, JsonValue> structs : structMapJson.entrySet()) {
+      structMapJson.fields().forEachRemaining(structs -> {
         String key = structs.getKey().equals(ExtraDataFoliage.NULL_PLACEHOLDER) ? null : structs.getKey();
         structMap.put(key, new StructPropertyList(structs.getValue()));
-      }
+      });
 
       structMapList.add(structMap);
     }

@@ -1,12 +1,11 @@
 package qowyn.ark.structs;
 
-import javax.json.Json;
-import javax.json.JsonObject;
-import javax.json.JsonObjectBuilder;
-import javax.json.JsonValue;
+import java.io.IOException;
+
+import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.databind.JsonNode;
 
 import qowyn.ark.ArkArchive;
-import qowyn.ark.JsonHelper;
 import qowyn.ark.NameSizeCalculator;
 
 /**
@@ -41,13 +40,11 @@ public class StructColor extends StructBase {
     a = archive.getByte();
   }
 
-  public StructColor(JsonValue v) {
-    JsonObject o = (JsonObject) v;
-
-    b = (byte) o.getInt("b", 0);
-    g = (byte) o.getInt("g", 0);
-    r = (byte) o.getInt("r", 0);
-    a = (byte) o.getInt("a", 0);
+  public StructColor(JsonNode node) {
+    b = (byte) node.path("b").asInt();
+    g = (byte) node.path("g").asInt();
+    r = (byte) node.path("r").asInt();
+    a = (byte) node.path("a").asInt();
   }
 
   public byte getB() {
@@ -83,19 +80,27 @@ public class StructColor extends StructBase {
   }
 
   @Override
-  public JsonObject toJson() {
-    JsonObjectBuilder vectorBuilder = Json.createObjectBuilder();
+  public void writeJson(JsonGenerator generator) throws IOException {
+    generator.writeStartObject();
 
-    JsonHelper.addInt(vectorBuilder, "b", b);
-    JsonHelper.addInt(vectorBuilder, "g", g);
-    JsonHelper.addInt(vectorBuilder, "r", r);
-    JsonHelper.addInt(vectorBuilder, "a", a);
+    if (b != 0) {
+      generator.writeNumberField("b", b);
+    }
+    if (g != 0) {
+      generator.writeNumberField("g", g);
+    }
+    if (r != 0) {
+      generator.writeNumberField("r", r);
+    }
+    if (a != 0) {
+      generator.writeNumberField("a", a);
+    }
 
-    return vectorBuilder.build();
+    generator.writeEndObject();
   }
 
   @Override
-  public void write(ArkArchive archive) {
+  public void writeBinary(ArkArchive archive) {
     archive.putByte(b);
     archive.putByte(g);
     archive.putByte(r);

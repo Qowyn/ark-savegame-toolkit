@@ -1,15 +1,14 @@
 package qowyn.ark.structs;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
-import javax.json.Json;
-import javax.json.JsonArray;
-import javax.json.JsonArrayBuilder;
-import javax.json.JsonObject;
-import javax.json.JsonValue;
+import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.databind.JsonNode;
 
 import qowyn.ark.ArkArchive;
 import qowyn.ark.NameCollector;
@@ -33,19 +32,16 @@ public class StructPropertyList extends StructBase implements PropertyContainer 
 
   public StructPropertyList(ArkArchive archive) {
     properties = new ArrayList<>();
-    Property<?> property = PropertyRegistry.readProperty(archive);
+    Property<?> property = PropertyRegistry.readBinary(archive);
 
     while (property != null) {
       properties.add(property);
-      property = PropertyRegistry.readProperty(archive);
+      property = PropertyRegistry.readBinary(archive);
     }
   }
 
-  public StructPropertyList(JsonValue v) {
-    JsonArray a = (JsonArray) v;
-
-    List<JsonObject> props = a.getValuesAs(JsonObject.class);
-    properties = props.stream().map(PropertyRegistry::fromJSON).collect(Collectors.toList());
+  public StructPropertyList(JsonNode node) {
+    properties = StreamSupport.stream(node.spliterator(), false).map(PropertyRegistry::readJson).collect(Collectors.toList());
   }
 
   @Override
@@ -64,16 +60,19 @@ public class StructPropertyList extends StructBase implements PropertyContainer 
   }
 
   @Override
-  public JsonArray toJson() {
-    JsonArrayBuilder propsBuilder = Json.createArrayBuilder();
-    properties.stream().map(Property::toJson).forEach(propsBuilder::add);
+  public void writeJson(JsonGenerator generator) throws IOException {
+    generator.writeStartArray(properties.size());
 
-    return propsBuilder.build();
+    for (Property<?> property: properties) {
+      property.writeJson(generator);
+    }
+
+    generator.writeEndArray();
   }
 
   @Override
-  public void write(ArkArchive archive) {
-    properties.forEach(p -> p.write(archive));
+  public void writeBinary(ArkArchive archive) {
+    properties.forEach(p -> p.writeBinary(archive));
 
     archive.putName(ArkName.NAME_NONE);
   }

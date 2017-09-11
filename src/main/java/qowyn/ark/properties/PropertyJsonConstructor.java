@@ -1,10 +1,10 @@
 package qowyn.ark.properties;
 
-import javax.json.JsonObject;
+import com.fasterxml.jackson.databind.JsonNode;
 
 @FunctionalInterface
 public interface PropertyJsonConstructor {
 
-  public Property<?> apply(JsonObject o);
+  public Property<?> apply(JsonNode node);
 
 }

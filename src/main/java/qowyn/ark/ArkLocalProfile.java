@@ -4,26 +4,18 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
-import java.util.Base64;
 import java.util.List;
 
-import javax.json.Json;
-import javax.json.JsonArray;
-import javax.json.JsonArrayBuilder;
-import javax.json.JsonObject;
-import javax.json.JsonObjectBuilder;
-import javax.json.JsonString;
+import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.databind.JsonNode;
 
 import qowyn.ark.properties.Property;
 
 public class ArkLocalProfile implements PropertyContainer, GameObjectContainer {
-
-  private static final Base64.Encoder ENCODER = Base64.getEncoder();
-
-  private static final Base64.Decoder DECODER = Base64.getDecoder();
 
   private static final int UNKNOWN_DATA_2_SIZE = 0xc;
 
@@ -44,7 +36,8 @@ public class ArkLocalProfile implements PropertyContainer, GameObjectContainer {
   }
 
   public ArkLocalProfile(String fileName, ReadingOptions options) throws FileNotFoundException, IOException {
-    try (FileChannel fc = FileChannel.open(Paths.get(fileName), StandardOpenOption.READ)) {
+    Path filePath = Paths.get(fileName);
+    try (FileChannel fc = FileChannel.open(filePath, StandardOpenOption.READ)) {
       if (fc.size() > Integer.MAX_VALUE) {
         throw new RuntimeException("Input file is too large.");
       }
@@ -61,13 +54,13 @@ public class ArkLocalProfile implements PropertyContainer, GameObjectContainer {
         }
         buffer.clear();
       }
-      ArkArchive archive = new ArkArchive(buffer);
+      ArkArchive archive = new ArkArchive(buffer, filePath);
       readBinary(archive);
     }
   }
 
-  public ArkLocalProfile(JsonObject object) {
-    readJson(object);
+  public ArkLocalProfile(JsonNode node) {
+    readJson(node);
   }
 
   public void readBinary(ArkArchive archive) {
@@ -139,7 +132,8 @@ public class ArkLocalProfile implements PropertyContainer, GameObjectContainer {
 
     size += objects.stream().mapToInt(object -> object.getPropertiesSize(nameSizer)).sum();
 
-    try (FileChannel fc = FileChannel.open(Paths.get(fileName), StandardOpenOption.CREATE, StandardOpenOption.READ, StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING)) {
+    Path filePath = Paths.get(fileName);
+    try (FileChannel fc = FileChannel.open(filePath, StandardOpenOption.CREATE, StandardOpenOption.READ, StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING)) {
       ByteBuffer buffer;
 
       if (options.usesMemoryMapping()) {
@@ -148,7 +142,7 @@ public class ArkLocalProfile implements PropertyContainer, GameObjectContainer {
         buffer = ByteBuffer.allocateDirect(size);
       }
 
-      ArkArchive archive = new ArkArchive(buffer);
+      ArkArchive archive = new ArkArchive(buffer, filePath);
 
       archive.putInt(localProfileVersion);
 
@@ -164,7 +158,7 @@ public class ArkLocalProfile implements PropertyContainer, GameObjectContainer {
       archive.putInt(objects.size());
 
       for (GameObject object : objects) {
-        propertiesBlockOffset = object.write(archive, propertiesBlockOffset);
+        propertiesBlockOffset = object.writeBinary(archive, propertiesBlockOffset);
       }
 
       for (GameObject object : objects) {
@@ -183,59 +177,70 @@ public class ArkLocalProfile implements PropertyContainer, GameObjectContainer {
     }
   }
 
-  public void readJson(JsonObject object) {
-    localProfileVersion = object.getInt("localProfileVersion");
+  public void readJson(JsonNode node) {
+    localProfileVersion = node.path("localProfileVersion").asInt();
     objects.clear();
 
-    JsonObject profile = object.getJsonObject("localProfile");
-    if (profile != null) {
-      setLocalProfile(new GameObject(profile));
+    if (node.hasNonNull("localProfile")) {
+      setLocalProfile(new GameObject(node.get("localProfile")));
     }
 
-    JsonArray profileObjects = object.getJsonArray("objects");
-    if (profileObjects != null) {
-      for (JsonObject profileObject : profileObjects.getValuesAs(JsonObject.class)) {
+    if (node.hasNonNull("objects")) {
+      for (JsonNode profileObject : node.get("objects")) {
         objects.add(new GameObject(profileObject));
       }
     }
 
-    JsonString unknownDataString = object.getJsonString("unknownData");
-    if (unknownDataString != null) {
-      unknownData = DECODER.decode(unknownDataString.getString());
+    JsonNode unknownDataString = node.path("unknownData");
+    if (unknownDataString.isBinary()) {
+      try {
+        unknownData = unknownDataString.binaryValue();
+      } catch (IOException ex) {
+        throw new RuntimeException(ex);
+      }
     }
 
-    JsonString unknownData2String = object.getJsonString("unknownData2");
-    if (unknownData2String != null) {
-      unknownData2 = DECODER.decode(unknownData2String.getString());
+    JsonNode unknownData2String = node.path("unknownData2");
+    if (unknownData2String.isBinary()) {
+      try {
+        unknownData2 = unknownData2String.binaryValue();
+      } catch (IOException ex) {
+        throw new RuntimeException(ex);
+      }
     }
   }
 
-  public JsonObject toJson() {
-    JsonObjectBuilder job = Json.createObjectBuilder();
+  public void writeJson(JsonGenerator generator) throws IOException {
+    generator.writeStartObject();
 
-    job.add("localProfileVersion", localProfileVersion);
-    job.add("localProfile", localProfile.toJson());
+    generator.writeNumberField("localProfileVersion", localProfileVersion);
+    generator.writeFieldName("localProfile");
+    if (localProfile != null) {
+      localProfile.writeJson(generator, true);
+    } else {
+      generator.writeNull();
+    }
 
     if (objects.size() > 1) {
-      JsonArrayBuilder additionalObjects = Json.createArrayBuilder();
+      generator.writeArrayFieldStart("objects");
       for (GameObject object : objects) {
         if (object == localProfile) {
           continue;
         }
 
-        additionalObjects.add(object.toJson());
+        object.writeJson(generator, true);
       }
-      job.add("objects", additionalObjects.build());
+      generator.writeEndArray();
     }
 
     if (unknownData != null) {
-      job.add("unknownData", ENCODER.encodeToString(unknownData));
+      generator.writeBinaryField("unknownData", unknownData);
     }
     if (unknownData2 != null) {
-      job.add("unknownData2", ENCODER.encodeToString(unknownData2));
+      generator.writeBinaryField("unknownData2", unknownData2);
     }
 
-    return job.build();
+    generator.writeEndObject();
   }
 
   public int getLocalProfileVersion() {

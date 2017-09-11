@@ -1,10 +1,10 @@
 package qowyn.ark.properties;
+import java.io.IOException;
 
-import javax.json.JsonObject;
-import javax.json.JsonObjectBuilder;
+import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.databind.JsonNode;
 
 import qowyn.ark.ArkArchive;
-import qowyn.ark.JsonHelper;
 import qowyn.ark.NameCollector;
 import qowyn.ark.NameSizeCalculator;
 import qowyn.ark.types.ArkByteValue;
@@ -42,10 +42,10 @@ public class PropertyByte extends PropertyBase<ArkByteValue> {
     value = new ArkByteValue(archive, !enumType.equals(ArkName.NAME_NONE));
   }
 
-  public PropertyByte(JsonObject o) {
-    super(o);
-    enumType = ArkName.from(o.getString("enum", ArkName.NAME_NONE.toString()));
-    value = new ArkByteValue(o.get("value"));
+  public PropertyByte(JsonNode node) {
+    super(node);
+    enumType = ArkName.from(node.path("enum").asText(ArkName.NAME_NONE.toString()));
+    value = new ArkByteValue(node.path("value"));
   }
 
   @Override
@@ -59,15 +59,19 @@ public class PropertyByte extends PropertyBase<ArkByteValue> {
   }
 
   @Override
-  protected void serializeValue(JsonObjectBuilder job) {
-    JsonHelper.addString(job, "enum", enumType.toString(), ArkName.NAME_NONE.toString());
-    job.add("value", value.toJson());
+  protected void writeJsonValue(JsonGenerator generator) throws IOException {
+    if (enumType != ArkName.NAME_NONE) {
+      generator.writeStringField("enum", enumType.toString());
+    }
+
+    generator.writeFieldName("value");
+    value.writeJson(generator);
   }
 
   @Override
-  protected void writeValue(ArkArchive archive) {
+  protected void writeBinaryValue(ArkArchive archive) {
     archive.putName(enumType);
-    value.write(archive);
+    value.writeBinary(archive);
   }
 
   @Override

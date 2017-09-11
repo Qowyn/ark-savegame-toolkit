@@ -3,7 +3,7 @@ package qowyn.ark.structs;
 import java.util.HashMap;
 import java.util.Map;
 
-import javax.json.JsonValue;
+import com.fasterxml.jackson.databind.JsonNode;
 
 import qowyn.ark.ArkArchive;
 import qowyn.ark.properties.UnreadablePropertyException;
@@ -39,7 +39,7 @@ public class StructRegistry {
     return NAME_TYPE_MAP.getOrDefault(arrayName, null);
   }
 
-  public static Struct read(ArkArchive archive, ArkName structType) {
+  public static Struct readBinary(ArkArchive archive, ArkName structType) {
     if (TYPE_MAP.containsKey(structType)) {
       return TYPE_MAP.get(structType).apply(archive);
     } else {
@@ -51,12 +51,12 @@ public class StructRegistry {
     }
   }
 
-  public static Struct read(JsonValue o, ArkName structType) {
+  public static Struct readJson(JsonNode node, ArkName structType) {
     if (TYPE_JSON_MAP.containsKey(structType)) {
-      return TYPE_JSON_MAP.get(structType).apply(o);
+      return TYPE_JSON_MAP.get(structType).apply(node);
     } else {
       try {
-        return new StructPropertyList(o);
+        return new StructPropertyList(node);
       } catch (UnreadablePropertyException upe) {
         throw new UnreadablePropertyException("Unknown Struct Type " + structType + " failed to read as StructPropertyList", upe);
       }

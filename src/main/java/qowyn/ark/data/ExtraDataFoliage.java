@@ -1,12 +1,10 @@
 package qowyn.ark.data;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
-import javax.json.Json;
-import javax.json.JsonArrayBuilder;
-import javax.json.JsonObjectBuilder;
-import javax.json.JsonValue;
+import com.fasterxml.jackson.core.JsonGenerator;
 
 import qowyn.ark.ArkArchive;
 import qowyn.ark.NameCollector;
@@ -45,22 +43,23 @@ public class ExtraDataFoliage implements ExtraData, NameContainer {
   }
 
   @Override
-  public JsonValue toJson() {
-    JsonArrayBuilder jab = Json.createArrayBuilder();
+  public void writeJson(JsonGenerator generator) throws IOException {
+    generator.writeStartArray(structMapList.size());
 
     for (Map<String, StructPropertyList> structMap : structMapList) {
-      JsonObjectBuilder job = Json.createObjectBuilder();
+      generator.writeStartObject();
       for (Map.Entry<String, StructPropertyList> entry : structMap.entrySet()) {
-        job.add(entry.getKey() == null ? NULL_PLACEHOLDER : entry.getKey(), entry.getValue().toJson());
+        generator.writeFieldName(entry.getKey() == null ? NULL_PLACEHOLDER : entry.getKey());
+        entry.getValue().writeJson(generator);
       }
-      jab.add(job);
+      generator.writeEndObject();
     }
 
-    return jab.build();
+    generator.writeEndArray();
   }
 
   @Override
-  public void write(ArkArchive archive) {
+  public void writeBinary(ArkArchive archive) {
     archive.putInt(0);
     archive.putInt(structMapList.size());
 
@@ -68,7 +67,7 @@ public class ExtraDataFoliage implements ExtraData, NameContainer {
       archive.putInt(structMap.size());
       for (Map.Entry<String, StructPropertyList> entry : structMap.entrySet()) {
         archive.putString(entry.getKey());
-        entry.getValue().write(archive);
+        entry.getValue().writeBinary(archive);
         archive.putInt(0);
       }
     }

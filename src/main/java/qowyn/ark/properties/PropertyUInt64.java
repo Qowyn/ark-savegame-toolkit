@@ -1,6 +1,6 @@
 package qowyn.ark.properties;
 
-import javax.json.JsonObject;
+import com.fasterxml.jackson.databind.JsonNode;
 
 import qowyn.ark.ArkArchive;
 import qowyn.ark.types.ArkName;
@@ -21,8 +21,8 @@ public class PropertyUInt64 extends PropertyInt64 {
     super(archive, name);
   }
 
-  public PropertyUInt64(JsonObject o) {
-    super(o);
+  public PropertyUInt64(JsonNode node) {
+    super(node);
   }
 
   @Override

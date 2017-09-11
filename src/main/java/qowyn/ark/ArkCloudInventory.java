@@ -4,16 +4,14 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.List;
 
-import javax.json.Json;
-import javax.json.JsonArray;
-import javax.json.JsonArrayBuilder;
-import javax.json.JsonObject;
-import javax.json.JsonObjectBuilder;
+import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.databind.JsonNode;
 
 import qowyn.ark.properties.Property;
 
@@ -32,7 +30,8 @@ public class ArkCloudInventory implements PropertyContainer, GameObjectContainer
   }
 
   public ArkCloudInventory(String fileName, ReadingOptions options) throws FileNotFoundException, IOException {
-    try (FileChannel fc = FileChannel.open(Paths.get(fileName), StandardOpenOption.READ)) {
+    Path filePath = Paths.get(fileName);
+    try (FileChannel fc = FileChannel.open(filePath, StandardOpenOption.READ)) {
       if (fc.size() > Integer.MAX_VALUE) {
         throw new RuntimeException("Input file is too large.");
       }
@@ -49,13 +48,13 @@ public class ArkCloudInventory implements PropertyContainer, GameObjectContainer
         }
         buffer.clear();
       }
-      ArkArchive archive = new ArkArchive(buffer);
+      ArkArchive archive = new ArkArchive(buffer, filePath);
       readBinary(archive);
     }
   }
 
-  public ArkCloudInventory(JsonObject object) {
-    readJson(object);
+  public ArkCloudInventory(JsonNode node) {
+    readJson(node);
   }
 
   public void readBinary(ArkArchive archive) {
@@ -95,7 +94,8 @@ public class ArkCloudInventory implements PropertyContainer, GameObjectContainer
 
     size += objects.stream().mapToInt(object -> object.getPropertiesSize(nameSizer)).sum();
 
-    try (FileChannel fc = FileChannel.open(Paths.get(fileName), StandardOpenOption.CREATE, StandardOpenOption.READ, StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING)) {
+    Path filePath = Paths.get(fileName);
+    try (FileChannel fc = FileChannel.open(filePath, StandardOpenOption.CREATE, StandardOpenOption.READ, StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING)) {
       ByteBuffer buffer;
 
       if (options.usesMemoryMapping()) {
@@ -104,13 +104,13 @@ public class ArkCloudInventory implements PropertyContainer, GameObjectContainer
         buffer = ByteBuffer.allocateDirect(size);
       }
 
-      ArkArchive archive = new ArkArchive(buffer);
+      ArkArchive archive = new ArkArchive(buffer, filePath);
 
       archive.putInt(inventoryVersion);
       archive.putInt(objects.size());
 
       for (GameObject object : objects) {
-        propertiesBlockOffset = object.write(archive, propertiesBlockOffset);
+        propertiesBlockOffset = object.writeBinary(archive, propertiesBlockOffset);
       }
 
       for (GameObject object : objects) {
@@ -129,42 +129,47 @@ public class ArkCloudInventory implements PropertyContainer, GameObjectContainer
     }
   }
 
-  public void readJson(JsonObject object) {
-    inventoryVersion = object.getInt("inventoryVersion");
+  public void readJson(JsonNode node) {
+    inventoryVersion = node.path("inventoryVersion").asInt();
     objects.clear();
 
-    JsonObject inventoryData = object.getJsonObject("inventoryData");
-    if (inventoryData != null) {
-      setInventoryData(new GameObject(inventoryData));
+    if (node.hasNonNull("inventoryData")) {
+      setInventoryData(new GameObject(node.get("inventoryData")));
     }
 
-    JsonArray profileObjects = object.getJsonArray("objects");
-    if (profileObjects != null) {
-      for (JsonObject profileObject : profileObjects.getValuesAs(JsonObject.class)) {
+    if (node.hasNonNull("objects")) {
+      for (JsonNode profileObject : node.get("objects")) {
         objects.add(new GameObject(profileObject));
       }
     }
   }
 
-  public JsonObject toJson() {
-    JsonObjectBuilder job = Json.createObjectBuilder();
+  public void writeJson(JsonGenerator generator) throws IOException {
+    generator.writeStartObject();
 
-    job.add("inventoryVersion", inventoryVersion);
-    job.add("inventoryData", inventoryData.toJson());
+    generator.writeNumberField("inventoryVersion", inventoryVersion);
+    generator.writeFieldName("inventoryData");
+    if (inventoryData != null) {
+      inventoryData.writeJson(generator, true);
+    } else {
+      generator.writeNull();
+    }
 
     if (objects.size() > 1) {
-      JsonArrayBuilder additionalObjects = Json.createArrayBuilder();
+      generator.writeArrayFieldStart("objects");
+
       for (GameObject object : objects) {
         if (object == inventoryData) {
           continue;
         }
 
-        additionalObjects.add(object.toJson());
+        object.writeJson(generator, true);
       }
-      job.add("objects", additionalObjects.build());
+
+      generator.writeEndArray();
     }
 
-    return job.build();
+    generator.writeEndObject();
   }
 
   public int getInventoryVersion() {

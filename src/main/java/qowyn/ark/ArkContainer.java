@@ -4,17 +4,13 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 
-import javax.json.Json;
-import javax.json.JsonArray;
-import javax.json.JsonArrayBuilder;
-import javax.json.JsonObject;
-import javax.json.JsonStructure;
-import javax.json.JsonValue.ValueType;
-import javax.json.stream.JsonGenerator;
+import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.databind.JsonNode;
 
 import qowyn.ark.arrays.ArkArrayInt8;
 import qowyn.ark.arrays.ArkArrayUInt8;
@@ -30,7 +26,8 @@ public class ArkContainer implements GameObjectContainer {
   }
 
   public ArkContainer(String fileName, ReadingOptions options) throws FileNotFoundException, IOException {
-    try (FileChannel fc = FileChannel.open(Paths.get(fileName), StandardOpenOption.READ)) {
+    Path filePath = Paths.get(fileName);
+    try (FileChannel fc = FileChannel.open(filePath, StandardOpenOption.READ)) {
       if (fc.size() > Integer.MAX_VALUE) {
         throw new RuntimeException("Input file is too large.");
       }
@@ -47,7 +44,7 @@ public class ArkContainer implements GameObjectContainer {
         }
         buffer.clear();
       }
-      ArkArchive archive = new ArkArchive(buffer);
+      ArkArchive archive = new ArkArchive(buffer, filePath);
       readBinary(archive);
     }
   }
@@ -74,8 +71,8 @@ public class ArkContainer implements GameObjectContainer {
     readBinary(archive);
   }
 
-  public ArkContainer(JsonArray jsonObjects) {
-    readJson(jsonObjects);
+  public ArkContainer(JsonNode node) {
+    readJson(node);
   }
 
   public void readBinary(ArkArchive archive) {
@@ -105,7 +102,8 @@ public class ArkContainer implements GameObjectContainer {
 
     size += objects.stream().mapToInt(object -> object.getPropertiesSize(nameSizer)).sum();
 
-    try (FileChannel fc = FileChannel.open(Paths.get(fileName), StandardOpenOption.CREATE, StandardOpenOption.READ, StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING)) {
+    Path filePath = Paths.get(fileName);
+    try (FileChannel fc = FileChannel.open(filePath, StandardOpenOption.CREATE, StandardOpenOption.READ, StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING)) {
       ByteBuffer buffer;
 
       if (options.usesMemoryMapping()) {
@@ -114,12 +112,12 @@ public class ArkContainer implements GameObjectContainer {
         buffer = ByteBuffer.allocateDirect(size);
       }
 
-      ArkArchive archive = new ArkArchive(buffer);
+      ArkArchive archive = new ArkArchive(buffer, filePath);
 
       archive.putInt(objects.size());
 
       for (GameObject object : objects) {
-        propertiesBlockOffset = object.write(archive, propertiesBlockOffset);
+        propertiesBlockOffset = object.writeBinary(archive, propertiesBlockOffset);
       }
 
       for (GameObject object : objects) {
@@ -138,45 +136,34 @@ public class ArkContainer implements GameObjectContainer {
     }
   }
 
-  public void readJson(JsonStructure jsonObjects) {
+  public void readJson(JsonNode node) {
     objects.clear();
 
-    if (jsonObjects.getValueType() == ValueType.ARRAY) {
+    if (node.isArray()) {
       int id = 0;
-      for (JsonObject jsonObject : ((JsonArray) jsonObjects).getValuesAs(JsonObject.class)) {
+      for (JsonNode jsonObject : node) {
         objects.add(new GameObject(jsonObject));
         objects.get(id).setId(id++); // Set id and increase afterwards
       }
     } else {
-      JsonArray objectsArray = ((JsonObject) jsonObjects).getJsonArray("objects");
-      if (objectsArray != null) {
-        objectsArray.getValuesAs(JsonObject.class).forEach(o -> objects.add(new GameObject(o)));
-
-        for (int i = 0; i < objects.size(); i++) {
-          objects.get(i).setId(i);
+      if (node.hasNonNull("objects")) {
+        int id = 0;
+        for (JsonNode jsonObject : node.get("objects")) {
+          objects.add(new GameObject(jsonObject));
+          objects.get(id).setId(id++); // Set id and increase afterwards
         }
       }
     }
   }
 
-  public void writeJson(JsonGenerator generator) {
+  public void writeJson(JsonGenerator generator) throws IOException {
     generator.writeStartArray();
 
     for (GameObject object : objects) {
-      generator.write(object.toJson(true));
+      object.writeJson(generator, true);
     }
 
-    generator.writeEnd();
-  }
-
-  public JsonArray toJson() {
-    JsonArrayBuilder jab = Json.createArrayBuilder();
-
-    for (GameObject object : objects) {
-      jab.add(object.toJson());
-    }
-
-    return jab.build();
+    generator.writeEndArray();
   }
 
   public ArrayList<GameObject> getObjects() {
@@ -200,7 +187,7 @@ public class ArkContainer implements GameObjectContainer {
     archive.putInt(objects.size());
 
     for (GameObject object : objects) {
-      propertiesBlockOffset = object.write(archive, propertiesBlockOffset);
+      propertiesBlockOffset = object.writeBinary(archive, propertiesBlockOffset);
     }
 
     for (GameObject object : objects) {

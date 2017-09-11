@@ -1,19 +1,15 @@
 package qowyn.ark.structs;
 
-import java.util.Base64;
+import java.io.IOException;
 
-import javax.json.JsonString;
-import javax.json.JsonValue;
+import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.databind.JsonNode;
 
 import qowyn.ark.ArkArchive;
 import qowyn.ark.NameSizeCalculator;
-import qowyn.ark.json.SimpleJsonString;
+import qowyn.ark.properties.UnreadablePropertyException;
 
 public class StructUnknown extends StructBase {
-
-  private static final Base64.Decoder DECODER = Base64.getDecoder();
-
-  private static final Base64.Encoder ENCODER = Base64.getEncoder();
 
   private final byte[] value;
 
@@ -21,18 +17,21 @@ public class StructUnknown extends StructBase {
     this.value = archive.getBytes(dataSize);
   }
 
-  public StructUnknown(JsonValue v) {
-    JsonString s = (JsonString) v;
-    value = DECODER.decode(s.getString());
+  public StructUnknown(JsonNode node) {
+    try {
+      value = node.binaryValue();
+    } catch (IOException ex) {
+      throw new UnreadablePropertyException(ex);
+    }
   }
 
   @Override
-  public JsonValue toJson() {
-    return new SimpleJsonString(ENCODER.encodeToString(value));
+  public void writeJson(JsonGenerator generator) throws IOException {
+    generator.writeBinary(value);
   }
 
   @Override
-  public void write(ArkArchive archive) {
+  public void writeBinary(ArkArchive archive) {
     archive.putBytes(value);
   }
 

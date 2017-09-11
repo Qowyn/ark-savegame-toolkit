@@ -1,11 +1,10 @@
 package qowyn.ark.arrays;
 
+import java.io.IOException;
 import java.util.ArrayList;
 
-import javax.json.Json;
-import javax.json.JsonArray;
-import javax.json.JsonArrayBuilder;
-import javax.json.JsonObject;
+import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.databind.JsonNode;
 
 import qowyn.ark.ArkArchive;
 import qowyn.ark.NameCollector;
@@ -30,8 +29,8 @@ public class ArkArrayObjectReference extends ArrayList<ObjectReference> implemen
     }
   }
 
-  public ArkArrayObjectReference(JsonArray a, PropertyArray property) {
-    a.getValuesAs(JsonObject.class).forEach(o -> this.add(new ObjectReference(o, 8)));
+  public ArkArrayObjectReference(JsonNode node, PropertyArray property) {
+    node.forEach(o -> this.add(new ObjectReference(o, 8)));
   }
 
   @Override
@@ -54,19 +53,21 @@ public class ArkArrayObjectReference extends ArrayList<ObjectReference> implemen
   }
 
   @Override
-  public JsonArray toJson() {
-    JsonArrayBuilder jab = Json.createArrayBuilder();
+  public void writeJson(JsonGenerator generator) throws IOException {
+    generator.writeStartArray(size());
 
-    this.forEach(or -> jab.add(or.toJSON()));
+    for (ObjectReference value: this) {
+      value.writeJson(generator);
+    }
 
-    return jab.build();
+    generator.writeEndArray();
   }
 
   @Override
-  public void write(ArkArchive archive) {
+  public void writeBinary(ArkArchive archive) {
     archive.putInt(size());
 
-    this.forEach(or -> or.write(archive));
+    this.forEach(or -> or.writeBinary(archive));
   }
 
   @Override

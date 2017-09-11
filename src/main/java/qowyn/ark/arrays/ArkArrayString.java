@@ -1,11 +1,10 @@
 package qowyn.ark.arrays;
 
+import java.io.IOException;
 import java.util.ArrayList;
 
-import javax.json.Json;
-import javax.json.JsonArray;
-import javax.json.JsonArrayBuilder;
-import javax.json.JsonString;
+import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.databind.JsonNode;
 
 import qowyn.ark.ArkArchive;
 import qowyn.ark.NameCollector;
@@ -29,8 +28,8 @@ public class ArkArrayString extends ArrayList<String> implements ArkArray<String
     }
   }
 
-  public ArkArrayString(JsonArray a, PropertyArray property) {
-    a.getValuesAs(JsonString.class).forEach(s -> this.add(s.getString()));
+  public ArkArrayString(JsonNode node, PropertyArray property) {
+    node.forEach(n -> this.add(n.asText()));
   }
 
   @Override
@@ -56,16 +55,18 @@ public class ArkArrayString extends ArrayList<String> implements ArkArray<String
   }
 
   @Override
-  public JsonArray toJson() {
-    JsonArrayBuilder jab = Json.createArrayBuilder();
+  public void writeJson(JsonGenerator generator) throws IOException {
+    generator.writeStartArray(size());
 
-    this.forEach(jab::add);
+    for (String value: this) {
+      generator.writeString(value);
+    }
 
-    return jab.build();
+    generator.writeEndArray();
   }
 
   @Override
-  public void write(ArkArchive archive) {
+  public void writeBinary(ArkArchive archive) {
     archive.putInt(size());
 
     this.forEach(archive::putString);

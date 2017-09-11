@@ -1,11 +1,9 @@
 package qowyn.ark.properties;
 
-import javax.json.JsonNumber;
-import javax.json.JsonObject;
-import javax.json.JsonObjectBuilder;
-import javax.json.JsonString;
-import javax.json.JsonValue;
-import javax.json.JsonValue.ValueType;
+import java.io.IOException;
+
+import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.databind.JsonNode;
 
 import qowyn.ark.ArkArchive;
 import qowyn.ark.NameSizeCalculator;
@@ -28,16 +26,9 @@ public class PropertyFloat extends PropertyBase<Float> {
     value = archive.getFloat();
   }
 
-  public PropertyFloat(JsonObject o) {
-    super(o);
-    JsonValue v = o.get("value");
-    if (v.getValueType() == ValueType.STRING) {
-      JsonString s = (JsonString) v;
-      value = Float.valueOf(s.getString());
-    } else {
-      JsonNumber n = (JsonNumber) v;
-      value = n.bigDecimalValue().floatValue();
-    }
+  public PropertyFloat(JsonNode node) {
+    super(node);
+    value = (float) node.path("value").asDouble();
   }
 
   @Override
@@ -51,16 +42,12 @@ public class PropertyFloat extends PropertyBase<Float> {
   }
 
   @Override
-  protected void serializeValue(JsonObjectBuilder job) {
-    if (Float.isFinite(value)) {
-      job.add("value", value);
-    } else {
-      job.add("value", Float.toString(value));
-    }
+  protected void writeJsonValue(JsonGenerator generator) throws IOException {
+    generator.writeNumberField("value", value);
   }
 
   @Override
-  protected void writeValue(ArkArchive archive) {
+  protected void writeBinaryValue(ArkArchive archive) {
     archive.putFloat(value);
   }
 

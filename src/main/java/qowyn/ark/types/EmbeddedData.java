@@ -1,21 +1,13 @@
 package qowyn.ark.types;
 
-import java.util.Base64;
-import java.util.List;
+import java.io.IOException;
 
-import javax.json.Json;
-import javax.json.JsonArray;
-import javax.json.JsonArrayBuilder;
-import javax.json.JsonObject;
-import javax.json.JsonObjectBuilder;
+import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.databind.JsonNode;
 
 import qowyn.ark.ArkArchive;
 
 public class EmbeddedData {
-
-  private static final Base64.Encoder ENCODER = Base64.getEncoder();
-
-  private static final Base64.Decoder DECODER = Base64.getDecoder();
 
   private String path;
 
@@ -24,11 +16,11 @@ public class EmbeddedData {
   public EmbeddedData() {}
 
   public EmbeddedData(ArkArchive archive) {
-    read(archive);
+    readBinary(archive);
   }
 
-  public EmbeddedData(JsonObject o) {
-    fromJson(o);
+  public EmbeddedData(JsonNode node) {
+    readJson(node);
   }
 
   public byte[][][] getData() {
@@ -47,41 +39,43 @@ public class EmbeddedData {
     this.path = path;
   }
 
-  public void fromJson(JsonObject o) {
-    path = o.getString("path", "");
+  public void readJson(JsonNode node) {
+    path = node.path("path").asText();
 
-    JsonArray dataValue = o.getJsonArray("data");
+    JsonNode dataValue = node.get("data");
 
-    if (dataValue != null) {
-      List<JsonArray> dataArray = dataValue.getValuesAs(JsonArray.class);
-      data = new byte[dataArray.size()][][];
-      for (int part = 0; part < dataArray.size(); part++) {
-        JsonArray partArray = dataArray.get(part);
-        data[part] = new byte[partArray.size()][];
-        for (int blob = 0; blob < partArray.size(); blob++) {
-          data[part][blob] = DECODER.decode(partArray.getString(blob));
+    try {
+      if (dataValue != null) {
+        data = new byte[dataValue.size()][][];
+        for (int part = 0; part < dataValue.size(); part++) {
+          JsonNode partArray = dataValue.get(part);
+          data[part] = new byte[partArray.size()][];
+          for (int blob = 0; blob < partArray.size(); blob++) {
+            data[part][blob] = partArray.get(blob).binaryValue();
+          }
         }
       }
+    } catch (IOException ex) {
+      throw new RuntimeException(ex);
     }
   }
 
-  public JsonObject toJson() {
-    JsonObjectBuilder job = Json.createObjectBuilder();
+  public void writeJson(JsonGenerator generator) throws IOException {
+    generator.writeStartObject();
 
-    job.add("path", path);
+    generator.writeStringField("path", path);
 
-    JsonArrayBuilder dataBuilder = Json.createArrayBuilder();
+    generator.writeArrayFieldStart("data");
     for (int part = 0; part < data.length; part++) {
-      JsonArrayBuilder blobBuilder = Json.createArrayBuilder();
+      generator.writeStartArray();
       for (int blob = 0; blob < data[part].length; blob++) {
-        blobBuilder.add(ENCODER.encodeToString(data[part][blob]));
+        generator.writeBinary(data[part][blob]);
       }
-      dataBuilder.add(blobBuilder);
+      generator.writeEndArray();
     }
+    generator.writeEndArray();
 
-    job.add("data", dataBuilder);
-
-    return job.build();
+    generator.writeEndObject();
   }
 
   public int getSize() {
@@ -102,7 +96,7 @@ public class EmbeddedData {
     return size;
   }
 
-  public void read(ArkArchive archive) {
+  public void readBinary(ArkArchive archive) {
     path = archive.getString();
 
     int partCount = archive.getInt();
@@ -121,7 +115,7 @@ public class EmbeddedData {
     }
   }
 
-  public void write(ArkArchive archive) {
+  public void writeBinary(ArkArchive archive) {
     archive.putString(path);
 
     if (data != null) {

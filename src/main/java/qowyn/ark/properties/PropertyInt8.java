@@ -1,7 +1,9 @@
 package qowyn.ark.properties;
 
-import javax.json.JsonObject;
-import javax.json.JsonObjectBuilder;
+import java.io.IOException;
+
+import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.databind.JsonNode;
 
 import qowyn.ark.ArkArchive;
 import qowyn.ark.NameSizeCalculator;
@@ -24,9 +26,9 @@ public class PropertyInt8 extends PropertyBase<Byte> {
     value = archive.getByte();
   }
 
-  public PropertyInt8(JsonObject o) {
-    super(o);
-    value = (byte) o.getInt("value");
+  public PropertyInt8(JsonNode node) {
+    super(node);
+    value = (byte) node.path("value").asInt();
   }
 
   @Override
@@ -40,12 +42,12 @@ public class PropertyInt8 extends PropertyBase<Byte> {
   }
 
   @Override
-  protected void serializeValue(JsonObjectBuilder job) {
-    job.add("value", value);
+  protected void writeJsonValue(JsonGenerator generator) throws IOException {
+    generator.writeNumberField("value", value);
   }
 
   @Override
-  protected void writeValue(ArkArchive archive) {
+  protected void writeBinaryValue(ArkArchive archive) {
     archive.putByte(value);
   }
 

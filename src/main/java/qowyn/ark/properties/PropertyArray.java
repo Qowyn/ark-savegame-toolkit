@@ -1,8 +1,9 @@
 package qowyn.ark.properties;
 
-import javax.json.JsonObject;
-import javax.json.JsonObjectBuilder;
-import javax.json.JsonValue.ValueType;
+import java.io.IOException;
+
+import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.databind.JsonNode;
 
 import qowyn.ark.ArkArchive;
 import qowyn.ark.NameCollector;
@@ -32,7 +33,7 @@ public class PropertyArray extends PropertyBase<ArkArray<?>> {
     int position = archive.position();
 
     try {
-      value = ArkArrayRegistry.read(archive, arrayType, this);
+      value = ArkArrayRegistry.readBinary(archive, arrayType, this);
 
       if (value == null) {
         throw new UnreadablePropertyException("ArkArrayRegistry returned null");
@@ -48,14 +49,14 @@ public class PropertyArray extends PropertyBase<ArkArray<?>> {
     }
   }
 
-  public PropertyArray(JsonObject o) {
-    super(o);
-    ArkName arrayType = ArkName.from(o.getString("arrayType"));
+  public PropertyArray(JsonNode node) {
+    super(node);
+    ArkName arrayType = ArkName.from(node.path("arrayType").asText());
 
-    if (o.get("value").getValueType() == ValueType.STRING) {
-      value = new ArkArrayUnknown(o.getString("value"), arrayType);
+    if (node.path("value").isBinary()) {
+      value = new ArkArrayUnknown(node.path("value"), arrayType);
     } else {
-      value = ArkArrayRegistry.read(o.getJsonArray("value"), arrayType, this);
+      value = ArkArrayRegistry.readJson(node.path("value"), arrayType, this);
     }
   }
 
@@ -81,15 +82,16 @@ public class PropertyArray extends PropertyBase<ArkArray<?>> {
   }
 
   @Override
-  protected void serializeValue(JsonObjectBuilder job) {
-    job.add("arrayType", value.getType().toString());
-    job.add("value", value.toJson());
+  protected void writeBinaryValue(ArkArchive archive) {
+    archive.putName(value.getType());
+    value.writeBinary(archive);
   }
 
   @Override
-  protected void writeValue(ArkArchive archive) {
-    archive.putName(value.getType());
-    value.write(archive);
+  protected void writeJsonValue(JsonGenerator generator) throws IOException {
+    generator.writeStringField("arrayType", value.getType().toString());
+    generator.writeFieldName("value");
+    value.writeJson(generator);
   }
 
   @Override

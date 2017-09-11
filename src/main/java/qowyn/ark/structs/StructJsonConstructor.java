@@ -1,10 +1,10 @@
 package qowyn.ark.structs;
 
-import javax.json.JsonValue;
+import com.fasterxml.jackson.databind.JsonNode;
 
 @FunctionalInterface
 public interface StructJsonConstructor {
 
-  public Struct apply(JsonValue value);
+  public Struct apply(JsonNode value);
 
 }

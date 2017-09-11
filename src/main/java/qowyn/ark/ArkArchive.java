@@ -41,7 +41,7 @@ public class ArkArchive {
 
   private final ArkArchiveState state;
 
-  public static PrintStream debugOutput = System.out;
+  public static PrintStream debugOutput = System.err;
 
   public static boolean reportLargeStrings = false;
 

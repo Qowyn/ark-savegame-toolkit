@@ -9,33 +9,18 @@ import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-import java.util.concurrent.Executors;
 import java.util.concurrent.ForkJoinPool;
-import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-import javax.json.Json;
-import javax.json.JsonArray;
-import javax.json.JsonArrayBuilder;
-import javax.json.JsonNumber;
-import javax.json.JsonObject;
-import javax.json.JsonObjectBuilder;
-import javax.json.JsonString;
-import javax.json.stream.JsonGenerator;
+import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.databind.JsonNode;
 
-import com.lmax.disruptor.RingBuffer;
-import com.lmax.disruptor.YieldingWaitStrategy;
-import com.lmax.disruptor.dsl.Disruptor;
-import com.lmax.disruptor.dsl.ProducerType;
-
-import qowyn.ark.disruptor.JsonObjectEvent;
 import qowyn.ark.types.EmbeddedData;
 import qowyn.ark.types.ListAppendingSet;
 import qowyn.ark.types.ObjectReference;
@@ -100,12 +85,12 @@ public class ArkSavegame implements GameObjectContainer {
     readBinary(fileName, options);
   }
 
-  public ArkSavegame(JsonObject object) {
-    this(object, new ReadingOptions());
+  public ArkSavegame(JsonNode node) {
+    this(node, new ReadingOptions());
   }
 
-  public ArkSavegame(JsonObject object, ReadingOptions options) {
-    readJson(object, options);
+  public ArkSavegame(JsonNode node, ReadingOptions options) {
+    readJson(node, options);
   }
 
   public short getSaveVersion() {
@@ -460,7 +445,8 @@ public class ArkSavegame implements GameObjectContainer {
 
     size += calculateObjectPropertiesSize(calculator);
 
-    try (FileChannel fc = FileChannel.open(Paths.get(fileName), StandardOpenOption.CREATE, StandardOpenOption.READ, StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING)) {
+    Path filePath = Paths.get(fileName);
+    try (FileChannel fc = FileChannel.open(filePath, StandardOpenOption.CREATE, StandardOpenOption.READ, StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING)) {
       ByteBuffer buffer;
 
       if (options.usesMemoryMapping()) {
@@ -469,7 +455,7 @@ public class ArkSavegame implements GameObjectContainer {
         buffer = ByteBuffer.allocateDirect(size);
       }
 
-      ArkArchive archive = new ArkArchive(buffer);
+      ArkArchive archive = new ArkArchive(buffer, filePath);
 
       if (nameTable != null) {
         archive.setNameTable(oldNameList != null ? ((ListAppendingSet<String>) nameTable).getList() : new ArrayList<>(nameTable));
@@ -531,7 +517,7 @@ public class ArkSavegame implements GameObjectContainer {
 
   protected void writeBinaryEmbeddedData(ArkArchive archive) {
     archive.putInt(embeddedData.size());
-    embeddedData.forEach(ed -> ed.write(archive));
+    embeddedData.forEach(ed -> ed.writeBinary(archive));
   }
 
   protected void writeBinaryDataFilesObjectMap(ArkArchive archive) {
@@ -561,7 +547,7 @@ public class ArkSavegame implements GameObjectContainer {
     }
 
     for (GameObject object : objects) {
-      currentOffset = object.write(archive, currentOffset);
+      currentOffset = object.writeBinary(archive, currentOffset);
     }
   }
 
@@ -687,129 +673,116 @@ public class ArkSavegame implements GameObjectContainer {
     return size;
   }
 
-  public void readJson(JsonObject object, ReadingOptions options) {
-    readJsonHeader(object);
-    readJsonDataFiles(object, options);
-    readJsonEmbeddedData(object, options);
-    readJsonDataFilesObjectMap(object, options);
-    readJsonObjects(object, options);
-    readJsonHibernatedObjects(object, options);
+  public void readJson(JsonNode node, ReadingOptions options) {
+    readJsonHeader(node);
+    readJsonDataFiles(node, options);
+    readJsonEmbeddedData(node, options);
+    readJsonDataFilesObjectMap(node, options);
+    readJsonObjects(node, options);
+    readJsonHibernatedObjects(node, options);
   }
 
-  protected void readJsonHeader(JsonObject object) {
-    saveVersion = (short) object.getInt("saveVersion");
-    gameTime = object.getJsonNumber("gameTime").bigDecimalValue().floatValue();
-    saveCount = object.getInt("saveCount", 0);
+  protected void readJsonHeader(JsonNode node) {
+    saveVersion = (short) node.path("saveVersion").asInt();
+    gameTime = (float) node.path("gameTime").asDouble();
+    saveCount = node.path("saveCount").asInt();
 
-    if (object.containsKey("preservedNames")) {
-      JsonArray preservedNames = object.getJsonArray("preservedNames");
+    JsonNode preservedNames = node.path("preservedNames");
+    if (!preservedNames.isNull()) {
       oldNameList = new ArrayList<>(preservedNames.size());
-      preservedNames.getValuesAs(JsonString.class).forEach(s -> oldNameList.add(s.getString()));
+      preservedNames.forEach(name -> oldNameList.add(name.asText()));
     } else {
       oldNameList = null;
     }
   }
 
-  protected void readJsonDataFiles(JsonObject object, ReadingOptions options) {
+  protected void readJsonDataFiles(JsonNode node, ReadingOptions options) {
     dataFiles.clear();
     if (options.getDataFiles()) {
-      JsonArray dataFilesArray = object.getJsonArray("dataFiles");
-      if (dataFilesArray != null) {
+      JsonNode dataFilesArray = node.path("dataFiles");
+      if (!dataFilesArray.isNull()) {
         dataFiles.ensureCapacity(dataFilesArray.size());
-        dataFilesArray.getValuesAs(JsonString.class).forEach(s -> dataFiles.add(s.getString()));
+        dataFilesArray.forEach(dataFile -> dataFiles.add(dataFile.asText()));
       }
     }
   }
 
-  protected void readJsonEmbeddedData(JsonObject object, ReadingOptions options) {
+  protected void readJsonEmbeddedData(JsonNode node, ReadingOptions options) {
     embeddedData.clear();
     if (options.getEmbeddedData()) {
-      JsonArray embeddedDataArray = object.getJsonArray("embeddedData");
-      if (embeddedDataArray != null) {
+      JsonNode embeddedDataArray = node.path("embeddedData");
+      if (!embeddedDataArray.isNull()) {
         embeddedData.ensureCapacity(embeddedDataArray.size());
-        embeddedDataArray.getValuesAs(JsonObject.class).forEach(o -> embeddedData.add(new EmbeddedData(o)));
+        embeddedDataArray.forEach(data -> embeddedData.add(new EmbeddedData(data)));
       }
     }
   }
 
-  protected void readJsonDataFilesObjectMap(JsonObject object, ReadingOptions options) {
+  protected void readJsonDataFilesObjectMap(JsonNode node, ReadingOptions options) {
     dataFilesObjectMap.clear();
     if (options.getDataFilesObjectMap()) {
-      JsonObject dataFilesObjectMapObject = object.getJsonObject("dataFilesObjectMap");
-      if (dataFilesObjectMapObject != null) {
-        dataFilesObjectMapObject.forEach((key, list) -> {
-          List<JsonArray> namesListList = ((JsonArray) list).getValuesAs(JsonArray.class);
-          List<String[]> objectNameList = new ArrayList<>(namesListList.size());
-          for (JsonArray namesArray : namesListList) {
-            List<JsonString> namesList = namesArray.getValuesAs(JsonString.class);
-            String[] names = new String[namesList.size()];
+      JsonNode dataFilesObjectMapObject = node.path("dataFilesObjectMap");
+      if (!dataFilesObjectMapObject.isNull()) {
+        dataFilesObjectMapObject.fields().forEachRemaining(entry -> {
+          List<String[]> objectNameList = new ArrayList<>(entry.getValue().size());
+          for (JsonNode namesArray : entry.getValue()) {
+            String[] names = new String[namesArray.size()];
             for (int index = 0; index < names.length; index++) {
-              names[index] = namesList.get(index).getString();
+              names[index] = namesArray.get(index).asText();
             }
             objectNameList.add(names);
           }
-          dataFilesObjectMap.put(Integer.valueOf(key), objectNameList);
+          dataFilesObjectMap.put(Integer.valueOf(entry.getKey()), objectNameList);
         });
       }
     }
   }
 
-  protected void readJsonObjects(JsonObject object, ReadingOptions options) {
+  protected void readJsonObjects(JsonNode node, ReadingOptions options) {
     objects.clear();
     if (options.getGameObjects()) {
-      JsonArray objectsArray = object.getJsonArray("objects");
-      if (objectsArray != null) {
+      JsonNode objectsArray = node.path("objects");
+      if (!objectsArray.isNull()) {
         objects.ensureCapacity(objectsArray.size());
-        objectsArray.getValuesAs(JsonObject.class).forEach(o -> objects.add(new GameObject(o, options.getGameObjectProperties())));
-
-        for (int i = 0; i < objects.size(); i++) {
+        for (int i = 0; i < objectsArray.size(); i++) {
+          objects.add(new GameObject(objectsArray.get(i), options.getGameObjectProperties()));
           objects.get(i).setId(i);
         }
       }
     }
   }
 
-  protected void readJsonHibernatedObjects(JsonObject object, ReadingOptions options) {
+  protected void readJsonHibernatedObjects(JsonNode node, ReadingOptions options) {
     hibernationClasses.clear();
     hibernationIndices.clear();
     hibernationEntries.clear();
-    if (options.getHibernation()) {
-      JsonObject hibernation = object.getJsonObject("hibernation");
+    if (options.getHibernation() && node.hasNonNull("hibernation")) {
+      JsonNode hibernation = node.get("hibernation");
 
-      if (hibernation == null) {
-        hibernationV8Unknown1 = 0;
-        hibernationV8Unknown2 = 0;
-        hibernationV8Unknown3 = 0;
-        hibernationV8Unknown4 = 0;
-        hibernationUnknown1 = 0;
-        hibernationUnknown2 = 0;
-        return;
-      }
+      hibernationV8Unknown1 = hibernation.path("v8Unknown1").asInt();
+      hibernationV8Unknown2 = hibernation.path("v8Unknown2").asInt();
+      hibernationV8Unknown3 = hibernation.path("v8Unknown3").asInt();
+      hibernationV8Unknown4 = hibernation.path("v8Unknown4").asInt();
+      hibernationUnknown1 = hibernation.path("unknown1").asInt();
+      hibernationUnknown2 = hibernation.path("unknown2").asInt();
 
-      hibernationV8Unknown1 = hibernation.getInt("v8Unknown1", 0);
-      hibernationV8Unknown2 = hibernation.getInt("v8Unknown2", 0);
-      hibernationV8Unknown3 = hibernation.getInt("v8Unknown3", 0);
-      hibernationV8Unknown4 = hibernation.getInt("v8Unknown4", 0);
-      hibernationUnknown1 = hibernation.getInt("unknown1", 0);
-      hibernationUnknown2 = hibernation.getInt("unknown2", 0);
-
-      JsonArray classesArray = hibernation.getJsonArray("classes");
-      if (classesArray != null) {
-        for (JsonString clazz: classesArray.getValuesAs(JsonString.class)) {
-          hibernationClasses.add(clazz.getString());
+      JsonNode classesArray = hibernation.path("classes");
+      if (!classesArray.isNull()) {
+        for (JsonNode clazz: classesArray) {
+          hibernationClasses.add(clazz.asText());
         }
       }
 
-      JsonArray indicesArray = hibernation.getJsonArray("indices");
-      if (indicesArray != null) {
-        for (JsonNumber index: indicesArray.getValuesAs(JsonNumber.class)) {
-          hibernationIndices.add(index.intValue());
+      JsonNode indicesArray = hibernation.path("indices");
+      if (!indicesArray.isNull()) {
+        for (JsonNode index: indicesArray) {
+          hibernationIndices.add(index.asInt());
         }
       }
 
-      JsonArray entriesArray = hibernation.getJsonArray("entries");
-      if (entriesArray != null) {
-        for (JsonObject hibernatedObject: entriesArray.getValuesAs(JsonObject.class)) {
+      JsonNode entriesArray = hibernation.path("entries");
+      if (!entriesArray.isNull()) {
+        for (JsonNode hibernatedObject: entriesArray) {
           hibernationEntries.add(new HibernationEntry(hibernatedObject, options.getHibernationObjectProperties()));
         }
       }
@@ -831,178 +804,115 @@ public class ArkSavegame implements GameObjectContainer {
    * 
    * @param generator {@link JsonGenerator} to write with
    */
-  @SuppressWarnings("unchecked")
-  public void writeJson(JsonGenerator generator, WritingOptions options) {
+  public void writeJson(JsonGenerator generator, WritingOptions options) throws IOException {
     generator.writeStartObject();
 
-    generator.write("saveVersion", saveVersion);
-    generator.write("gameTime", gameTime);
+    generator.writeNumberField("saveVersion", saveVersion);
+    generator.writeNumberField("gameTime", gameTime);
 
-    generator.write("saveCount", saveCount);
+    generator.writeNumberField("saveCount", saveCount);
 
     if (oldNameList != null && !oldNameList.isEmpty()) {
-      generator.writeStartArray("preservedNames");
+      generator.writeArrayFieldStart("preservedNames");
 
-      oldNameList.forEach(generator::write);
+      for (String oldName: oldNameList) {
+        generator.writeString(oldName);
+      }
 
-      generator.writeEnd();
+      generator.writeEndArray();
     }
 
     if (!dataFiles.isEmpty()) {
-      generator.writeStartArray("dataFiles");
+      generator.writeArrayFieldStart("dataFiles");
 
-      dataFiles.forEach(generator::write);
+      for (String dataFile: dataFiles) {
+        generator.writeString(dataFile);
+      }
 
-      generator.writeEnd();
+      generator.writeEndArray();
     }
 
     if (!embeddedData.isEmpty()) {
-      generator.writeStartArray("embeddedData");
+      generator.writeArrayFieldStart("embeddedData");
 
-      embeddedData.forEach(ed -> generator.write(ed.toJson()));
+      for (EmbeddedData data: embeddedData) {
+        data.writeJson(generator);
+      }
 
-      generator.writeEnd();
+      generator.writeEndArray();
     }
 
     if (!dataFilesObjectMap.isEmpty()) {
-      generator.writeStartObject("dataFilesObjectMap");
+      generator.writeObjectFieldStart("dataFilesObjectMap");
 
       for (Entry<Integer, List<String[]>> entry : dataFilesObjectMap.entrySet()) {
-        generator.writeStartArray(entry.getKey().toString());
+        generator.writeArrayFieldStart(entry.getKey().toString());
         for (String[] namesList : entry.getValue()) {
           generator.writeStartArray();
           for (String name : namesList) {
-            generator.write(name);
+            generator.writeString(name);
           }
-          generator.writeEnd();
+          generator.writeEndArray();
         }
-        generator.writeEnd();
+        generator.writeEndArray();
       }
 
-      generator.writeEnd();
+      generator.writeEndObject();
     }
 
     if (!objects.isEmpty()) {
-      generator.writeStartArray("objects");
+      generator.writeArrayFieldStart("objects");
 
-      if (options.isAsynchronous()) {
-        int bufferSize = options.getAsyncBufferSize();
-
-        Disruptor<JsonObjectEvent> disruptor = new Disruptor<>(JsonObjectEvent::new, bufferSize, Executors.defaultThreadFactory(), ProducerType.SINGLE, new YieldingWaitStrategy());
-
-        disruptor.handleEventsWith((event, sequence, endOfBatch) -> generator.write(event.get()));
-
-        disruptor.start();
-
-        RingBuffer<JsonObjectEvent> ringBuffer = disruptor.getRingBuffer();
-
-        objects.forEach(o -> ringBuffer.publishEvent((event, sequence) -> event.set(o.toJson(true))));
-
-        disruptor.shutdown();
-      } else {
-        objects.forEach(o -> generator.write(o.toJson()));
+      for (GameObject object: objects) {
+        object.writeJson(generator, true);
       }
 
-      generator.writeEnd();
+      generator.writeEndArray();
     }
 
-    generator.writeStartObject("hibernation");
+    generator.writeObjectFieldStart("hibernation");
 
-    generator.write("v8Unknown1", hibernationV8Unknown1);
-    generator.write("v8Unknown2", hibernationV8Unknown2);
-    generator.write("v8Unknown3", hibernationV8Unknown3);
-    generator.write("v8Unknown4", hibernationV8Unknown4);
+    generator.writeNumberField("v8Unknown1", hibernationV8Unknown1);
+    generator.writeNumberField("v8Unknown2", hibernationV8Unknown2);
+    generator.writeNumberField("v8Unknown3", hibernationV8Unknown3);
+    generator.writeNumberField("v8Unknown4", hibernationV8Unknown4);
 
-    generator.write("unknown1", hibernationUnknown1);
-    generator.write("unknown2", hibernationUnknown2);
+    generator.writeNumberField("unknown1", hibernationUnknown1);
+    generator.writeNumberField("unknown2", hibernationUnknown2);
 
     if (!hibernationClasses.isEmpty()) {
-      generator.writeStartArray("classes");
+      generator.writeArrayFieldStart("classes");
 
-      hibernationClasses.forEach(generator::write);
+      for (String hibernationClass: hibernationClasses) {
+        generator.writeString(hibernationClass);
+      }
 
-      generator.writeEnd();
+      generator.writeEndArray();
     }
 
     if (!hibernationIndices.isEmpty()) {
-      generator.writeStartArray("indices");
+      generator.writeArrayFieldStart("indices");
 
-      hibernationIndices.forEach(generator::write);
+      for (int hibernationIndex: hibernationIndices) {
+        generator.writeNumber(hibernationIndex);
+      }
 
-      generator.writeEnd();
+      generator.writeEndArray();
     }
 
     if (!hibernationEntries.isEmpty()) {
-      generator.writeStartArray("entries");
+      generator.writeArrayFieldStart("entries");
 
-      hibernationEntries.forEach(o -> generator.write(o.toJson()));
-
-      generator.writeEnd();
-    }
-
-    generator.writeEnd();
-
-    generator.writeEnd();
-  }
-
-  public JsonObject toJson() {
-    JsonObjectBuilder builder = Json.createObjectBuilder();
-
-    builder.add("saveVersion", saveVersion);
-    builder.add("gameTime", gameTime);
-
-    if (saveCount > 0) {
-      builder.add("saveCount", saveCount);
-    }
-
-    if (!dataFiles.isEmpty()) {
-      JsonArrayBuilder dataFilesBuilder = Json.createArrayBuilder();
-
-      dataFiles.forEach(dataFilesBuilder::add);
-
-      builder.add("dataFiles", dataFilesBuilder);
-    }
-
-    if (!embeddedData.isEmpty()) {
-      JsonArrayBuilder embeddedDataBuilder = Json.createArrayBuilder();
-
-      embeddedData.forEach(ed -> embeddedDataBuilder.add(ed.toJson()));
-
-      builder.add("embeddedData", embeddedDataBuilder);
-    }
-
-    if (!dataFilesObjectMap.isEmpty()) {
-      JsonObjectBuilder objectMapBuilder = Json.createObjectBuilder();
-
-      for (Entry<Integer, List<String[]>> entry : dataFilesObjectMap.entrySet()) {
-        JsonArrayBuilder namesListListBuilder = Json.createArrayBuilder();
-        for (String[] namesList : entry.getValue()) {
-          JsonArrayBuilder namesListBuilder = Json.createArrayBuilder();
-          for (String name : namesList) {
-            namesListBuilder.add(name);
-          }
-          namesListListBuilder.add(namesListBuilder);
-        }
-        objectMapBuilder.add(entry.getKey().toString(), namesListListBuilder);
+      for (HibernationEntry hibernationEntry: hibernationEntries) {
+        hibernationEntry.writeJson(generator);
       }
 
-      builder.add("dataFilesObjectMap", objectMapBuilder);
+      generator.writeEndArray();
     }
 
-    if (!objects.isEmpty()) {
-      JsonArrayBuilder objectsBuilder = Json.createArrayBuilder();
+    generator.writeEndObject();
 
-      List<JsonObject> objectsList = objects.parallelStream()
-          .sorted(Comparator.comparing(GameObject::getId))
-          .map(GameObject::toJson)
-          .collect(Collectors.toList());
-
-      objectsList.forEach(objectsBuilder::add);
-
-      builder.add("objects", objectsBuilder);
-    }
-
-    return builder.build();
+    generator.writeEndObject();
   }
 
 }

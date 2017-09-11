@@ -1,16 +1,13 @@
 package qowyn.ark;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
-import javax.json.Json;
-import javax.json.JsonArray;
-import javax.json.JsonArrayBuilder;
-import javax.json.JsonObject;
-import javax.json.JsonString;
-import javax.json.JsonValue;
+import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.databind.JsonNode;
 
 import qowyn.ark.types.ArkName;
 
@@ -49,8 +46,8 @@ public class HibernationEntry {
     readBinary(archive, loadProperties);
   }
 
-  public HibernationEntry(JsonObject object, boolean loadProperties) {
-    readJson(object, loadProperties);
+  public HibernationEntry(JsonNode node, boolean loadProperties) {
+    readJson(node, loadProperties);
   }
 
   public void readBinary(ArkArchive archive, boolean loadProperties) {
@@ -140,7 +137,7 @@ public class HibernationEntry {
 
     int currentOffset = propertiesStart;
     for (GameObject object: objects) {
-      currentOffset = object.write(objectArchive, currentOffset);
+      currentOffset = object.writeBinary(objectArchive, currentOffset);
     }
 
     objectArchive.setNameTable(nameTable, 0, true);
@@ -181,55 +178,56 @@ public class HibernationEntry {
     return size + nameTableSize + objectsSize;
   }
 
-  public void readJson(JsonObject hibernatedObject, boolean loadProperties) {
-    x = hibernatedObject.getJsonNumber("x").bigDecimalValue().floatValue();
-    y = hibernatedObject.getJsonNumber("y").bigDecimalValue().floatValue();
-    z = hibernatedObject.getJsonNumber("z").bigDecimalValue().floatValue();
-    unkByte = hibernatedObject.getJsonNumber("unkByte").bigIntegerValue().byteValue();
-    unkFloat = hibernatedObject.getJsonNumber("unkFloat").bigDecimalValue().floatValue();
+  public void readJson(JsonNode node, boolean loadProperties) {
+    x = (float) node.path("x").asDouble();
+    y = (float) node.path("y").asDouble();
+    z = (float) node.path("z").asDouble();
+    unkByte = (byte) node.path("unkByte").asInt();
+    unkFloat = (float) node.path("unkFloat").asDouble();
 
-    JsonArray zoneArray = hibernatedObject.getJsonArray("zones");
     zoneVolumes.clear();
-    if (zoneArray != null) {
-      zoneVolumes.ensureCapacity(zoneArray.size());
-      for (JsonString zone: zoneArray.getValuesAs(JsonString.class)) {
-        zoneVolumes.add(ArkName.from(zone.getString()));
+    if (node.hasNonNull("zones")) {
+      for (JsonNode zone: node.path("zones")) {
+        zoneVolumes.add(ArkName.from(zone.asText()));
       }
     }
 
-    JsonArray objectArray = hibernatedObject.getJsonArray("objects");
     objects.clear();
-    if (objectArray != null) {
-      objects.ensureCapacity(objectArray.size());
-      for (JsonObject object: objectArray.getValuesAs(JsonObject.class)) {
+    if (node.hasNonNull("objects")) {
+      for (JsonNode object: node.path("objects")) {
         objects.add(new GameObject(object, loadProperties));
       }
     }
 
-    unkInt1 = hibernatedObject.getInt("unkInt1");
-    classIndex = hibernatedObject.getInt("classIndex");
+    unkInt1 = node.path("unkInt1").asInt();
+    classIndex = node.path("classIndex").asInt();
   }
 
-  public JsonValue toJson() {
-    JsonArrayBuilder zoneArray = Json.createArrayBuilder();
+  public void writeJson(JsonGenerator generator) throws IOException {
+    generator.writeStartObject();
 
-    zoneVolumes.forEach(z -> zoneArray.add(z.toString()));
+    generator.writeNumberField("x", x);
+    generator.writeNumberField("y", y);
+    generator.writeNumberField("z", z);
+    generator.writeNumberField("unkByte", unkByte);
+    generator.writeNumberField("unkFloat", unkFloat);
 
-    JsonArrayBuilder objectArray = Json.createArrayBuilder();
+    generator.writeArrayFieldStart("zones");
+    for (ArkName zone: zoneVolumes) {
+      generator.writeString(zone.toString());
+    }
+    generator.writeEndArray();
 
-    objects.forEach(o -> objectArray.add(o.toJson(false)));
+    generator.writeArrayFieldStart("objects");
+    for (GameObject object: objects) {
+      object.writeJson(generator, true);
+    }
+    generator.writeEndArray();
 
-    return Json.createObjectBuilder()
-        .add("x", x)
-        .add("y", y)
-        .add("z", z)
-        .add("unkByte", unkByte)
-        .add("unkFloat", unkFloat)
-        .add("zones", zoneArray)
-        .add("objects", objectArray)
-        .add("unkInt1", unkInt1)
-        .add("classIndex", classIndex)
-        .build();
+    generator.writeNumberField("unkInt1", unkInt1);
+    generator.writeNumberField("classIndex", classIndex);
+
+    generator.writeEndObject();
   }
 
   public float getX() {

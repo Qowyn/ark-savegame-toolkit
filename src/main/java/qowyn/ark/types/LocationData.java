@@ -1,11 +1,11 @@
 package qowyn.ark.types;
 
-import javax.json.Json;
-import javax.json.JsonObject;
-import javax.json.JsonObjectBuilder;
+import java.io.IOException;
+
+import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.databind.JsonNode;
 
 import qowyn.ark.ArkArchive;
-import qowyn.ark.JsonHelper;
 
 public class LocationData {
 
@@ -24,11 +24,11 @@ public class LocationData {
   public LocationData() {}
 
   public LocationData(ArkArchive archive) {
-    read(archive);
+    readBinary(archive);
   }
 
-  public LocationData(JsonObject o) {
-    fromJson(o);
+  public LocationData(JsonNode node) {
+    readJson(node);
   }
 
   public float getX() {
@@ -84,33 +84,43 @@ public class LocationData {
     return "LocationData [x=" + x + ", y=" + y + ", z=" + z + ", pitch=" + pitch + ", yaw=" + yaw + ", roll=" + roll + "]";
   }
 
-  public void fromJson(JsonObject o) {
-    x = JsonHelper.getFloat(o, "x");
-    y = JsonHelper.getFloat(o, "y");
-    z = JsonHelper.getFloat(o, "z");
-    pitch = JsonHelper.getFloat(o, "pitch");
-    yaw = JsonHelper.getFloat(o, "yaw");
-    roll = JsonHelper.getFloat(o, "roll");
+  public void readJson(JsonNode node) {
+    x = node.path("x").floatValue();
+    y = node.path("y").floatValue();
+    z = node.path("z").floatValue();
+    pitch = node.path("pitch").floatValue();
+    yaw = node.path("yaw").floatValue();
+    roll = node.path("roll").floatValue();
   }
 
-  public JsonObject toJson() {
-    JsonObjectBuilder builder = Json.createObjectBuilder();
-
-    JsonHelper.addFloat(builder, "x", x);
-    JsonHelper.addFloat(builder, "y", y);
-    JsonHelper.addFloat(builder, "z", z);
-    JsonHelper.addFloat(builder, "pitch", pitch);
-    JsonHelper.addFloat(builder, "yaw", yaw);
-    JsonHelper.addFloat(builder, "roll", roll);
-
-    return builder.build();
+  public void writeJson(JsonGenerator generator) throws IOException {
+    generator.writeStartObject();
+    if (x != 0.0f) {
+      generator.writeNumberField("x", x);
+    }
+    if (y != 0.0f) {
+      generator.writeNumberField("y", y);
+    }
+    if (z != 0.0f) {
+      generator.writeNumberField("z", z);
+    }
+    if (pitch != 0.0f) {
+      generator.writeNumberField("pitch", pitch);
+    }
+    if (yaw != 0.0f) {
+      generator.writeNumberField("yaw", yaw);
+    }
+    if (roll != 0.0f) {
+      generator.writeNumberField("roll", roll);
+    }
+    generator.writeEndObject();
   }
 
   public long getSize() {
     return Float.BYTES * 6;
   }
 
-  public void read(ArkArchive archive) {
+  public void readBinary(ArkArchive archive) {
     x = archive.getFloat();
     y = archive.getFloat();
     z = archive.getFloat();
@@ -119,7 +129,7 @@ public class LocationData {
     roll = archive.getFloat();
   }
 
-  public void write(ArkArchive archive) {
+  public void writeBinary(ArkArchive archive) {
     archive.putFloat(x);
     archive.putFloat(y);
     archive.putFloat(z);
@@ -129,7 +139,7 @@ public class LocationData {
   }
 
   public static void skip(ArkArchive archive) {
-    archive.position(archive.position() + Float.BYTES * 6);
+    archive.skipBytes(Float.BYTES * 6);
   }
 
 }
