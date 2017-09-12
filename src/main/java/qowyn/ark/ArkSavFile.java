@@ -5,7 +5,6 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.List;
@@ -18,7 +17,7 @@ import qowyn.ark.properties.PropertyRegistry;
 import qowyn.ark.properties.UnreadablePropertyException;
 import qowyn.ark.types.ArkName;
 
-public class ArkSavFile implements PropertyContainer {
+public class ArkSavFile extends FileFormatBase implements PropertyContainer {
 
   private String className;
 
@@ -26,39 +25,24 @@ public class ArkSavFile implements PropertyContainer {
 
   public ArkSavFile() {}
 
-  public ArkSavFile(String fileName) throws FileNotFoundException, IOException {
-    this(fileName, new ReadingOptions());
+  public ArkSavFile(Path filePath) throws IOException {
+    readBinary(filePath);
   }
 
-  public ArkSavFile(String fileName, ReadingOptions options) throws FileNotFoundException, IOException {
-    Path filePath = Paths.get(fileName);
-    try (FileChannel fc = FileChannel.open(filePath, StandardOpenOption.READ)) {
-      if (fc.size() > Integer.MAX_VALUE) {
-        throw new RuntimeException("Input file is too large.");
-      }
-      ByteBuffer buffer;
-      if (options.usesMemoryMapping()) {
-        buffer = fc.map(FileChannel.MapMode.READ_ONLY, 0, fc.size());
-      } else {
-        buffer = ByteBuffer.allocateDirect((int) fc.size());
-        int bytesRead = fc.read(buffer);
-        int totalRead = bytesRead;
-        while (bytesRead != -1 && totalRead < fc.size()) {
-          bytesRead = fc.read(buffer);
-          totalRead += bytesRead;
-        }
-        buffer.clear();
-      }
-      ArkArchive archive = new ArkArchive(buffer, filePath);
-      readBinary(archive);
-    }
+  public ArkSavFile(Path filePath, ReadingOptions options) throws IOException {
+    readBinary(filePath, options);
   }
 
   public ArkSavFile(JsonNode node) {
     readJson(node);
   }
 
-  public void readBinary(ArkArchive archive) {
+  public ArkSavFile(JsonNode node, ReadingOptions options) {
+    readJson(node, options);
+  }
+
+  @Override
+  public void readBinary(ArkArchive archive, ReadingOptions options) {
     className = archive.getString();
 
     properties.clear();
@@ -77,11 +61,8 @@ public class ArkSavFile implements PropertyContainer {
     // TODO: verify 0 int at end
   }
 
-  public void writeBinary(String fileName) throws FileNotFoundException, IOException {
-    writeBinary(fileName, WritingOptions.create());
-  }
-
-  public void writeBinary(String fileName, WritingOptions options) throws FileNotFoundException, IOException {
+  @Override
+  public void writeBinary(Path filePath, WritingOptions options) throws FileNotFoundException, IOException {
     int size = Integer.BYTES + ArkArchive.getStringLength(className);
 
     NameSizeCalculator nameSizer = ArkArchive.getNameSizer(false);
@@ -90,7 +71,6 @@ public class ArkSavFile implements PropertyContainer {
 
     size += properties.stream().mapToInt(p -> p.calculateSize(nameSizer)).sum();
 
-    Path filePath = Paths.get(fileName);
     try (FileChannel fc = FileChannel.open(filePath, StandardOpenOption.CREATE, StandardOpenOption.READ, StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING)) {
       ByteBuffer buffer;
 
@@ -123,7 +103,8 @@ public class ArkSavFile implements PropertyContainer {
     }
   }
 
-  public void readJson(JsonNode node) {
+  @Override
+  public void readJson(JsonNode node, ReadingOptions options) {
     className = node.path("className").asText();
 
     properties.clear();
@@ -134,7 +115,8 @@ public class ArkSavFile implements PropertyContainer {
     }
   }
 
-  public void writeJson(JsonGenerator generator) throws IOException {
+  @Override
+  public void writeJson(JsonGenerator generator, WritingOptions options) throws IOException {
     generator.writeStartObject();
 
     generator.writeStringField("className", className);

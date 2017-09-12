@@ -1,10 +1,11 @@
 package qowyn.ark;
 
+import java.util.Iterator;
 import java.util.List;
 
 import qowyn.ark.types.ObjectReference;
 
-public interface GameObjectContainer {
+public interface GameObjectContainer extends Iterable<GameObject> {
 
   public List<GameObject> getObjects();
 
@@ -18,6 +19,11 @@ public interface GameObjectContainer {
     } else {
       return null;
     }
+  }
+
+  @Override
+  public default Iterator<GameObject> iterator() {
+    return getObjects().iterator();
   }
 
 }

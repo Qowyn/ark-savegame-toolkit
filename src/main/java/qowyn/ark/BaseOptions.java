@@ -11,7 +11,7 @@ public class BaseOptions {
 
   private boolean parallel = false;
 
-  private boolean asynchronous = Runtime.getRuntime().availableProcessors() > 1;
+  private int threadCount = Runtime.getRuntime().availableProcessors();
 
   public static BaseOptions create() {
     return new BaseOptions();
@@ -58,22 +58,25 @@ public class BaseOptions {
   }
 
   /**
-   * Should I/O be handled asynchronously where possible?
+   * The amount of thread to use for parallel operations
    * 
-   * @return whether I/O will be handled asynchronously
+   * @return amount of threads to use
    */
-  public boolean isAsynchronous() {
-    return asynchronous;
+  public int getThreadCount() {
+    return threadCount;
   }
 
   /**
-   * Sets whether I/O will be handled asynchronously.
+   * Sets the amount of threads to use
    * 
-   * @param asynchronous whether I/O will be handled asynchronously
+   * @param threadCount amount of threads to use
    * @return self, to continue building options using a fluent interface
    */
-  public BaseOptions asynchronous(boolean asynchronous) {
-    this.asynchronous = asynchronous;
+  public BaseOptions withThreadCount(int threadCount) {
+    if (threadCount < 1) {
+      throw new IllegalArgumentException("ThreadCount must not be lower than 1");
+    }
+    this.threadCount = threadCount;
     return this;
   }
 

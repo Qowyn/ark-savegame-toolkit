@@ -5,7 +5,6 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 
@@ -15,38 +14,26 @@ import com.fasterxml.jackson.databind.JsonNode;
 import qowyn.ark.arrays.ArkArrayInt8;
 import qowyn.ark.arrays.ArkArrayUInt8;
 
-public class ArkContainer implements GameObjectContainer {
+public class ArkContainer extends FileFormatBase implements GameObjectContainer {
 
   private final ArrayList<GameObject> objects = new ArrayList<>();
 
   public ArkContainer() {}
 
-  public ArkContainer(String fileName) throws FileNotFoundException, IOException {
-    this(fileName, new ReadingOptions());
+  public ArkContainer(Path filePath) throws IOException {
+    readBinary(filePath);
   }
 
-  public ArkContainer(String fileName, ReadingOptions options) throws FileNotFoundException, IOException {
-    Path filePath = Paths.get(fileName);
-    try (FileChannel fc = FileChannel.open(filePath, StandardOpenOption.READ)) {
-      if (fc.size() > Integer.MAX_VALUE) {
-        throw new RuntimeException("Input file is too large.");
-      }
-      ByteBuffer buffer;
-      if (options.usesMemoryMapping()) {
-        buffer = fc.map(FileChannel.MapMode.READ_ONLY, 0, fc.size());
-      } else {
-        buffer = ByteBuffer.allocateDirect((int) fc.size());
-        int bytesRead = fc.read(buffer);
-        int totalRead = bytesRead;
-        while (bytesRead != -1 && totalRead < fc.size()) {
-          bytesRead = fc.read(buffer);
-          totalRead += bytesRead;
-        }
-        buffer.clear();
-      }
-      ArkArchive archive = new ArkArchive(buffer, filePath);
-      readBinary(archive);
-    }
+  public ArkContainer(Path filePath, ReadingOptions options) throws IOException {
+    readBinary(filePath, options);
+  }
+
+  public ArkContainer(JsonNode node) {
+    readJson(node);
+  }
+
+  public ArkContainer(JsonNode node, ReadingOptions options) {
+    readJson(node, options);
   }
 
   public ArkContainer(ArkArrayUInt8 source) {
@@ -57,7 +44,7 @@ public class ArkContainer implements GameObjectContainer {
     buffer.clear();
 
     ArkArchive archive = new ArkArchive(buffer);
-    readBinary(archive);
+    readBinary(archive, new ReadingOptions());
   }
 
   public ArkContainer(ArkArrayInt8 source) {
@@ -68,14 +55,11 @@ public class ArkContainer implements GameObjectContainer {
     buffer.clear();
 
     ArkArchive archive = new ArkArchive(buffer);
-    readBinary(archive);
+    readBinary(archive, new ReadingOptions());
   }
 
-  public ArkContainer(JsonNode node) {
-    readJson(node);
-  }
-
-  public void readBinary(ArkArchive archive) {
+  @Override
+  public void readBinary(ArkArchive archive, ReadingOptions options) {
     int objectCount = archive.getInt();
 
     for (int i = 0; i < objectCount; i++) {
@@ -87,11 +71,8 @@ public class ArkContainer implements GameObjectContainer {
     }
   }
 
-  public void writeBinary(String fileName) throws FileNotFoundException, IOException {
-    writeBinary(fileName, WritingOptions.create());
-  }
-
-  public void writeBinary(String fileName, WritingOptions options) throws FileNotFoundException, IOException {
+  @Override
+  public void writeBinary(Path filePath, WritingOptions options) throws FileNotFoundException, IOException {
     int size = Integer.BYTES;
 
     NameSizeCalculator nameSizer = ArkArchive.getNameSizer(false);
@@ -102,7 +83,6 @@ public class ArkContainer implements GameObjectContainer {
 
     size += objects.stream().mapToInt(object -> object.getPropertiesSize(nameSizer)).sum();
 
-    Path filePath = Paths.get(fileName);
     try (FileChannel fc = FileChannel.open(filePath, StandardOpenOption.CREATE, StandardOpenOption.READ, StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING)) {
       ByteBuffer buffer;
 
@@ -136,7 +116,8 @@ public class ArkContainer implements GameObjectContainer {
     }
   }
 
-  public void readJson(JsonNode node) {
+  @Override
+  public void readJson(JsonNode node, ReadingOptions options) {
     objects.clear();
 
     if (node.isArray()) {
@@ -156,7 +137,8 @@ public class ArkContainer implements GameObjectContainer {
     }
   }
 
-  public void writeJson(JsonGenerator generator) throws IOException {
+  @Override
+  public void writeJson(JsonGenerator generator, WritingOptions options) throws IOException {
     generator.writeStartArray();
 
     for (GameObject object : objects) {

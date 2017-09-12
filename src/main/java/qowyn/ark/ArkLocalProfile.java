@@ -5,7 +5,6 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.List;
@@ -15,7 +14,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 
 import qowyn.ark.properties.Property;
 
-public class ArkLocalProfile implements PropertyContainer, GameObjectContainer {
+public class ArkLocalProfile extends FileFormatBase implements PropertyContainer, GameObjectContainer {
 
   private static final int UNKNOWN_DATA_2_SIZE = 0xc;
 
@@ -31,39 +30,24 @@ public class ArkLocalProfile implements PropertyContainer, GameObjectContainer {
 
   public ArkLocalProfile() {}
 
-  public ArkLocalProfile(String fileName) throws FileNotFoundException, IOException {
-    this(fileName, new ReadingOptions());
+  public ArkLocalProfile(Path filePath) throws IOException {
+    readBinary(filePath);
   }
 
-  public ArkLocalProfile(String fileName, ReadingOptions options) throws FileNotFoundException, IOException {
-    Path filePath = Paths.get(fileName);
-    try (FileChannel fc = FileChannel.open(filePath, StandardOpenOption.READ)) {
-      if (fc.size() > Integer.MAX_VALUE) {
-        throw new RuntimeException("Input file is too large.");
-      }
-      ByteBuffer buffer;
-      if (options.usesMemoryMapping()) {
-        buffer = fc.map(FileChannel.MapMode.READ_ONLY, 0, fc.size());
-      } else {
-        buffer = ByteBuffer.allocateDirect((int) fc.size());
-        int bytesRead = fc.read(buffer);
-        int totalRead = bytesRead;
-        while (bytesRead != -1 && totalRead < fc.size()) {
-          bytesRead = fc.read(buffer);
-          totalRead += bytesRead;
-        }
-        buffer.clear();
-      }
-      ArkArchive archive = new ArkArchive(buffer, filePath);
-      readBinary(archive);
-    }
+  public ArkLocalProfile(Path filePath, ReadingOptions options) throws IOException {
+    readBinary(filePath, options);
   }
 
   public ArkLocalProfile(JsonNode node) {
     readJson(node);
   }
 
-  public void readBinary(ArkArchive archive) {
+  public ArkLocalProfile(JsonNode node, ReadingOptions options) {
+    readJson(node, options);
+  }
+
+  @Override
+  public void readBinary(ArkArchive archive, ReadingOptions options) {
     localProfileVersion = archive.getInt();
 
     if (localProfileVersion != 1 && localProfileVersion != 3 && localProfileVersion != 4) {
@@ -95,11 +79,8 @@ public class ArkLocalProfile implements PropertyContainer, GameObjectContainer {
     }
   }
 
-  public void writeBinary(String fileName) throws FileNotFoundException, IOException {
-    writeBinary(fileName, WritingOptions.create());
-  }
-  
-  public void writeBinary(String fileName, WritingOptions options) throws FileNotFoundException, IOException {
+  @Override
+  public void writeBinary(Path filePath, WritingOptions options) throws FileNotFoundException, IOException {
     int size;
 
     if (localProfileVersion > 3) {
@@ -132,7 +113,6 @@ public class ArkLocalProfile implements PropertyContainer, GameObjectContainer {
 
     size += objects.stream().mapToInt(object -> object.getPropertiesSize(nameSizer)).sum();
 
-    Path filePath = Paths.get(fileName);
     try (FileChannel fc = FileChannel.open(filePath, StandardOpenOption.CREATE, StandardOpenOption.READ, StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING)) {
       ByteBuffer buffer;
 
@@ -177,7 +157,8 @@ public class ArkLocalProfile implements PropertyContainer, GameObjectContainer {
     }
   }
 
-  public void readJson(JsonNode node) {
+  @Override
+  public void readJson(JsonNode node, ReadingOptions options) {
     localProfileVersion = node.path("localProfileVersion").asInt();
     objects.clear();
 
@@ -210,7 +191,8 @@ public class ArkLocalProfile implements PropertyContainer, GameObjectContainer {
     }
   }
 
-  public void writeJson(JsonGenerator generator) throws IOException {
+  @Override
+  public void writeJson(JsonGenerator generator, WritingOptions options) throws IOException {
     generator.writeStartObject();
 
     generator.writeNumberField("localProfileVersion", localProfileVersion);

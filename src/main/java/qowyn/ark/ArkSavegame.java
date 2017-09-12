@@ -1,11 +1,9 @@
 package qowyn.ark;
 
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -25,7 +23,7 @@ import qowyn.ark.types.EmbeddedData;
 import qowyn.ark.types.ListAppendingSet;
 import qowyn.ark.types.ObjectReference;
 
-public class ArkSavegame implements GameObjectContainer {
+public class ArkSavegame extends FileFormatBase implements GameObjectContainer {
 
   protected short saveVersion;
 
@@ -77,16 +75,16 @@ public class ArkSavegame implements GameObjectContainer {
 
   public ArkSavegame() {}
 
-  public ArkSavegame(String fileName) throws IOException {
-    this(fileName, new ReadingOptions());
+  public ArkSavegame(Path filePath) throws IOException {
+    readBinary(filePath);
   }
 
-  public ArkSavegame(String fileName, ReadingOptions options) throws IOException {
-    readBinary(fileName, options);
+  public ArkSavegame(Path filePath, ReadingOptions options) throws IOException {
+    readBinary(filePath, options);
   }
 
   public ArkSavegame(JsonNode node) {
-    this(node, new ReadingOptions());
+    readJson(node);
   }
 
   public ArkSavegame(JsonNode node, ReadingOptions options) {
@@ -130,30 +128,7 @@ public class ArkSavegame implements GameObjectContainer {
     return hasUnknownData;
   }
 
-  public void readBinary(String fileName, ReadingOptions options) throws IOException {
-    Path filePath = Paths.get(fileName);
-    try (FileChannel fc = FileChannel.open(filePath, StandardOpenOption.READ)) {
-      if (fc.size() > Integer.MAX_VALUE) {
-        throw new RuntimeException("Input file is too large.");
-      }
-      ByteBuffer buffer;
-      if (options.usesMemoryMapping()) {
-        buffer = fc.map(FileChannel.MapMode.READ_ONLY, 0, fc.size());
-      } else {
-        buffer = ByteBuffer.allocateDirect((int) fc.size());
-        int bytesRead = fc.read(buffer);
-        int totalRead = bytesRead;
-        while (bytesRead != -1 && totalRead < fc.size()) {
-          bytesRead = fc.read(buffer);
-          totalRead += bytesRead;
-        }
-        buffer.clear();
-      }
-      ArkArchive archive = new ArkArchive(buffer, filePath);
-      readBinary(archive, options);
-    }
-  }
-
+  @Override
   public void readBinary(ArkArchive archive, ReadingOptions options) {
     readBinaryHeader(archive);
 
@@ -304,7 +279,7 @@ public class ArkSavegame implements GameObjectContainer {
   protected void readBinaryObjectProperties(ArkArchive archive, ReadingOptions options) {
     if (options.getGameObjects() && options.getGameObjectProperties()) {
       if (options.isParallel()) {
-        ForkJoinPool pool = new ForkJoinPool(Runtime.getRuntime().availableProcessors(), ForkJoinPool.defaultForkJoinWorkerThreadFactory, null, true);
+        ForkJoinPool pool = new ForkJoinPool(options.getThreadCount(), ForkJoinPool.defaultForkJoinWorkerThreadFactory, null, true);
 
         pool.submit(() -> {
           IntStream stream = IntStream.range(0, objects.size()).parallel();
@@ -340,7 +315,7 @@ public class ArkSavegame implements GameObjectContainer {
   protected void readBinaryObjectPropertiesImpl(int n, ArkArchive archive) {
     objects.get(n).loadProperties(archive, (n < objects.size() - 1) ? objects.get(n + 1) : null, propertiesBlockOffset);
   }
-  
+
   protected void readBinaryHibernation(ArkArchive archive, ReadingOptions options) {
     if (!options.getHibernation()) {
       hibernationV8Unknown1 = 0;
@@ -403,11 +378,8 @@ public class ArkSavegame implements GameObjectContainer {
     }
   }
 
-  public void writeBinary(String fileName) throws FileNotFoundException, IOException {
-    writeBinary(fileName, new WritingOptions());
-  }
-
-  public void writeBinary(String fileName, WritingOptions options) throws FileNotFoundException, IOException {
+  @Override
+  public void writeBinary(Path filePath, WritingOptions options) throws IOException {
     // calculateHeaderSize checks for valid known versions
     NameSizeCalculator calculator = ArkArchive.getNameSizer(saveVersion > 5);
 
@@ -445,7 +417,6 @@ public class ArkSavegame implements GameObjectContainer {
 
     size += calculateObjectPropertiesSize(calculator);
 
-    Path filePath = Paths.get(fileName);
     try (FileChannel fc = FileChannel.open(filePath, StandardOpenOption.CREATE, StandardOpenOption.READ, StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING)) {
       ByteBuffer buffer;
 
@@ -598,11 +569,13 @@ public class ArkSavegame implements GameObjectContainer {
     }
 
     if (options.isParallel()) {
-      ForkJoinPool pool = new ForkJoinPool(Runtime.getRuntime().availableProcessors(), ForkJoinPool.defaultForkJoinWorkerThreadFactory, null, true);
+      ForkJoinPool pool = new ForkJoinPool(options.getThreadCount(), ForkJoinPool.defaultForkJoinWorkerThreadFactory, null, true);
 
-      final ThreadLocal<ArkArchive> sharedArchive = ThreadLocal.withInitial(archive::clone);
-
-      pool.submit(() -> objects.parallelStream().forEach(o -> o.writeProperties(sharedArchive.get(), offset))).join();
+      for (GameObject object: objects) {
+        pool.submit(() -> {
+          object.writeProperties(archive.clone(), offset);
+        });
+      }
 
       pool.shutdown();
     } else {
@@ -673,6 +646,7 @@ public class ArkSavegame implements GameObjectContainer {
     return size;
   }
 
+  @Override
   public void readJson(JsonNode node, ReadingOptions options) {
     readJsonHeader(node);
     readJsonDataFiles(node, options);
@@ -804,6 +778,7 @@ public class ArkSavegame implements GameObjectContainer {
    * 
    * @param generator {@link JsonGenerator} to write with
    */
+  @Override
   public void writeJson(JsonGenerator generator, WritingOptions options) throws IOException {
     generator.writeStartObject();
 

@@ -199,8 +199,8 @@ public class ReadingOptions extends BaseOptions {
   }
 
   @Override
-  public ReadingOptions asynchronous(boolean asynchronous) {
-    super.asynchronous(asynchronous);
+  public ReadingOptions withThreadCount(int threadCount) {
+    super.withThreadCount(threadCount);
     return this;
   }
 

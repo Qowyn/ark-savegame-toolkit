@@ -5,7 +5,6 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.List;
@@ -15,7 +14,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 
 import qowyn.ark.properties.Property;
 
-public class ArkProfile implements PropertyContainer, GameObjectContainer {
+public class ArkProfile extends FileFormatBase implements PropertyContainer, GameObjectContainer {
 
   private int profileVersion;
 
@@ -25,39 +24,24 @@ public class ArkProfile implements PropertyContainer, GameObjectContainer {
 
   public ArkProfile() {}
 
-  public ArkProfile(String fileName) throws FileNotFoundException, IOException {
-    this(fileName, new ReadingOptions());
+  public ArkProfile(Path filePath) throws IOException {
+    readBinary(filePath);
   }
 
-  public ArkProfile(String fileName, ReadingOptions options) throws FileNotFoundException, IOException {
-    Path filePath = Paths.get(fileName);
-    try (FileChannel fc = FileChannel.open(filePath, StandardOpenOption.READ)) {
-      if (fc.size() > Integer.MAX_VALUE) {
-        throw new RuntimeException("Input file is too large.");
-      }
-      ByteBuffer buffer;
-      if (options.usesMemoryMapping()) {
-        buffer = fc.map(FileChannel.MapMode.READ_ONLY, 0, fc.size());
-      } else {
-        buffer = ByteBuffer.allocateDirect((int) fc.size());
-        int bytesRead = fc.read(buffer);
-        int totalRead = bytesRead;
-        while (bytesRead != -1 && totalRead < fc.size()) {
-          bytesRead = fc.read(buffer);
-          totalRead += bytesRead;
-        }
-        buffer.clear();
-      }
-      ArkArchive archive = new ArkArchive(buffer, filePath);
-      readBinary(archive);
-    }
+  public ArkProfile(Path filePath, ReadingOptions options) throws IOException {
+    readBinary(filePath, options);
   }
 
   public ArkProfile(JsonNode node) {
     readJson(node);
   }
 
-  public void readBinary(ArkArchive archive) {
+  public ArkProfile(JsonNode node, ReadingOptions options) {
+    readJson(node, options);
+  }
+
+  @Override
+  public void readBinary(ArkArchive archive, ReadingOptions options) {
     profileVersion = archive.getInt();
 
     if (profileVersion != 1) {
@@ -79,11 +63,8 @@ public class ArkProfile implements PropertyContainer, GameObjectContainer {
     }
   }
 
-  public void writeBinary(String fileName) throws FileNotFoundException, IOException {
-    writeBinary(fileName, WritingOptions.create());
-  }
-
-  public void writeBinary(String fileName, WritingOptions options) throws FileNotFoundException, IOException {
+  @Override
+  public void writeBinary(Path filePath, WritingOptions options) throws FileNotFoundException, IOException {
     int size = Integer.BYTES * 2;
 
     NameSizeCalculator nameSizer = ArkArchive.getNameSizer(false);
@@ -94,7 +75,6 @@ public class ArkProfile implements PropertyContainer, GameObjectContainer {
 
     size += objects.stream().mapToInt(object -> object.getPropertiesSize(nameSizer)).sum();
 
-    Path filePath = Paths.get(fileName);
     try (FileChannel fc = FileChannel.open(filePath, StandardOpenOption.CREATE, StandardOpenOption.READ, StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING)) {
       ByteBuffer buffer;
 
@@ -129,7 +109,8 @@ public class ArkProfile implements PropertyContainer, GameObjectContainer {
     }
   }
 
-  public void readJson(JsonNode node) {
+  @Override
+  public void readJson(JsonNode node, ReadingOptions options) {
     profileVersion = node.path("profileVersion").asInt();
     objects.clear();
 
@@ -144,7 +125,8 @@ public class ArkProfile implements PropertyContainer, GameObjectContainer {
     }
   }
 
-  public void writeJson(JsonGenerator generator) throws IOException {
+  @Override
+  public void writeJson(JsonGenerator generator, WritingOptions options) throws IOException {
     generator.writeStartObject();
 
     generator.writeNumberField("profileVersion", profileVersion);
