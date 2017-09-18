@@ -25,6 +25,8 @@ public class ReadingOptions extends BaseOptions {
 
   private boolean hibernationObjectProperties = true;
 
+  private boolean buildComponentTree = false;
+
   public static ReadingOptions create() {
     return new ReadingOptions();
   }
@@ -183,6 +185,15 @@ public class ReadingOptions extends BaseOptions {
    */
   public ReadingOptions withHibernationObjectProperties(boolean hibernationObjectProperties) {
     this.hibernationObjectProperties = hibernationObjectProperties;
+    return this;
+  }
+
+  public boolean getBuildComponentTree() {
+    return buildComponentTree;
+  }
+
+  public ReadingOptions buildComponentTree(boolean buildComponentTree) {
+    this.buildComponentTree = buildComponentTree;
     return this;
   }
 

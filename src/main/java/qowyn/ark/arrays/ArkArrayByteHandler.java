@@ -23,7 +23,7 @@ public class ArkArrayByteHandler {
     if (property.getDataSize() > size + 4) {
       return new ArkArrayByteValue(archive, property);
     } else {
-      return new ArkArrayInt8(archive, property);
+      return new ArkArrayUInt8(archive, property);
     }
   }
 
@@ -32,7 +32,7 @@ public class ArkArrayByteHandler {
     if (node.size() > 0 && node.get(0).isNull()) {
       return new ArkArrayByteValue(node, property);
     } else {
-      return new ArkArrayInt8(node, property);
+      return new ArkArrayUInt8(node, property);
     }
   }
 

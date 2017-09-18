@@ -7,18 +7,23 @@ import java.nio.channels.FileChannel;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.JsonNode;
 
 import qowyn.ark.properties.Property;
+import qowyn.ark.types.ArkName;
 
-public class ArkCloudInventory extends FileFormatBase implements PropertyContainer, GameObjectContainer {
+public class ArkCloudInventory extends FileFormatBase implements PropertyContainer, GameObjectContainerMixin {
 
   private int inventoryVersion;
 
   private final ArrayList<GameObject> objects = new ArrayList<>();
+
+  private final Map<Integer, Map<List<ArkName>, GameObject>> objectMap = new HashMap<>();
 
   private GameObject inventoryData;
 
@@ -50,8 +55,10 @@ public class ArkCloudInventory extends FileFormatBase implements PropertyContain
 
     int objectCount = archive.getInt();
 
+    objects.clear();
+    objectMap.clear();
     for (int i = 0; i < objectCount; i++) {
-      objects.add(new GameObject(archive));
+      addObject(new GameObject(archive), options.getBuildComponentTree());
     }
 
     for (int i = 0; i < objectCount; i++) {
@@ -112,15 +119,17 @@ public class ArkCloudInventory extends FileFormatBase implements PropertyContain
   @Override
   public void readJson(JsonNode node, ReadingOptions options) {
     inventoryVersion = node.path("inventoryVersion").asInt();
-    objects.clear();
 
+    objects.clear();
+    objectMap.clear();
     if (node.hasNonNull("inventoryData")) {
-      setInventoryData(new GameObject(node.get("inventoryData")));
+      addObject(new GameObject(node.get("inventoryData")), options.getBuildComponentTree());
+      inventoryData = objects.get(0);
     }
 
     if (node.hasNonNull("objects")) {
-      for (JsonNode profileObject : node.get("objects")) {
-        objects.add(new GameObject(profileObject));
+      for (JsonNode objectNode : node.get("objects")) {
+        addObject(new GameObject(objectNode), options.getBuildComponentTree());
       }
     }
   }
@@ -162,8 +171,14 @@ public class ArkCloudInventory extends FileFormatBase implements PropertyContain
     this.inventoryVersion = inventoryVersion;
   }
 
+  @Override
   public ArrayList<GameObject> getObjects() {
     return objects;
+  }
+
+  @Override
+  public Map<Integer, Map<List<ArkName>, GameObject>> getObjectMap() {
+    return objectMap;
   }
 
   public GameObject getInventoryData() {

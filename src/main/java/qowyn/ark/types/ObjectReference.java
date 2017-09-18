@@ -103,7 +103,7 @@ public class ObjectReference implements NameContainer {
       objectId = node.asInt();
       objectType = TYPE_ID;
     } else if (node.isTextual()) {
-      objectString = ArkName.from(node.asText());
+      objectString = ArkName.from(node.textValue());
       objectType = TYPE_PATH;
     } else {
       objectString = ArkName.from(node.path("value").asText());
@@ -174,6 +174,14 @@ public class ObjectReference implements NameContainer {
     if (objectType == TYPE_PATH) {
       collector.accept(objectString);
     }
+  }
+
+  public boolean isId() {
+    return objectType == TYPE_ID;
+  }
+
+  public boolean isPath() {
+    return objectType != TYPE_ID;
   }
 
 }

@@ -7,6 +7,7 @@ import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -19,11 +20,12 @@ import java.util.stream.IntStream;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.JsonNode;
 
+import qowyn.ark.types.ArkName;
 import qowyn.ark.types.EmbeddedData;
 import qowyn.ark.types.ListAppendingSet;
 import qowyn.ark.types.ObjectReference;
 
-public class ArkSavegame extends FileFormatBase implements GameObjectContainer {
+public class ArkSavegame extends FileFormatBase implements GameObjectContainerMixin {
 
   protected short saveVersion;
 
@@ -50,6 +52,8 @@ public class ArkSavegame extends FileFormatBase implements GameObjectContainer {
   protected final Map<Integer, List<String[]>> dataFilesObjectMap = new LinkedHashMap<>();
 
   protected final ArrayList<GameObject> objects = new ArrayList<>();
+
+  protected final Map<Integer, Map<List<ArkName>, GameObject>> objectMap = new HashMap<>();
 
   protected int hibernationV8Unknown1;
 
@@ -120,12 +124,33 @@ public class ArkSavegame extends FileFormatBase implements GameObjectContainer {
     return objects;
   }
 
+  @Override
+  public Map<Integer, Map<List<ArkName>, GameObject>> getObjectMap() {
+    return objectMap;
+  }
+
   public boolean hasUnknownNames() {
     return oldNameList != null;
   }
 
   public boolean hasUnknownData() {
     return hasUnknownData;
+  }
+
+  public Map<Integer, List<String[]>> getDataFilesObjectMap() {
+    return dataFilesObjectMap;
+  }
+
+  public ArrayList<String> getHibernationClasses() {
+    return hibernationClasses;
+  }
+
+  public ArrayList<Integer> getHibernationIndices() {
+    return hibernationIndices;
+  }
+
+  public ArrayList<HibernationEntry> getHibernationEntries() {
+    return hibernationEntries;
   }
 
   @Override
@@ -265,10 +290,9 @@ public class ArkSavegame extends FileFormatBase implements GameObjectContainer {
       int count = archive.getInt();
 
       objects.clear();
+      objectMap.clear();
       for (int n = 0; n < count; n++) {
-        GameObject gameObject = new GameObject(archive);
-        gameObject.setId(n);
-        objects.add(gameObject);
+        addObject(new GameObject(archive), options.getBuildComponentTree());
       }
     } else {
       archive.unknownData();
@@ -374,7 +398,7 @@ public class ArkSavegame extends FileFormatBase implements GameObjectContainer {
     hibernationEntries.clear();
     hibernationEntries.ensureCapacity(hibernatedObjectsCount);
     for (int index = 0; index < hibernatedObjectsCount; index++) {
-      hibernationEntries.add(new HibernationEntry(archive, options.getHibernationObjectProperties()));
+      hibernationEntries.add(new HibernationEntry(archive, options));
     }
   }
 
@@ -714,13 +738,13 @@ public class ArkSavegame extends FileFormatBase implements GameObjectContainer {
 
   protected void readJsonObjects(JsonNode node, ReadingOptions options) {
     objects.clear();
+    objectMap.clear();
     if (options.getGameObjects()) {
       JsonNode objectsArray = node.path("objects");
       if (!objectsArray.isNull()) {
         objects.ensureCapacity(objectsArray.size());
         for (int i = 0; i < objectsArray.size(); i++) {
-          objects.add(new GameObject(objectsArray.get(i), options.getGameObjectProperties()));
-          objects.get(i).setId(i);
+          addObject(new GameObject(objectsArray.get(i), options.getGameObjectProperties()), options.getBuildComponentTree());
         }
       }
     }
@@ -757,7 +781,7 @@ public class ArkSavegame extends FileFormatBase implements GameObjectContainer {
       JsonNode entriesArray = hibernation.path("entries");
       if (!entriesArray.isNull()) {
         for (JsonNode hibernatedObject: entriesArray) {
-          hibernationEntries.add(new HibernationEntry(hibernatedObject, options.getHibernationObjectProperties()));
+          hibernationEntries.add(new HibernationEntry(hibernatedObject, options));
         }
       }
     } else {

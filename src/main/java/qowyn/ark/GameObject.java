@@ -2,6 +2,7 @@ package qowyn.ark;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -25,7 +26,7 @@ public class GameObject implements PropertyContainer, NameContainer {
 
   private static final UUID NULL_UUID = UUID.fromString(NULL_UUID_STRING);
 
-  private static final Map<LongLong, UUID> UUID_CACHE = new ConcurrentHashMap<>();
+  private static final Map<UUID, UUID> uuidCache = new ConcurrentHashMap<>();
 
   private int id;
 
@@ -53,6 +54,10 @@ public class GameObject implements PropertyContainer, NameContainer {
   protected List<Property<?>> properties = new ArrayList<>();
 
   protected ExtraData extraData;
+
+  protected GameObject parent;
+
+  protected Map<ArkName, GameObject> components = new LinkedHashMap<>();
 
   public GameObject() {}
 
@@ -174,7 +179,8 @@ public class GameObject implements PropertyContainer, NameContainer {
   }
 
   public void readJson(JsonNode node, boolean loadProperties) {
-    uuid = UUID.fromString(node.path("uuid").asText(NULL_UUID_STRING));
+    
+    uuid = uuidCache.computeIfAbsent(UUID.fromString(node.path("uuid").asText(NULL_UUID_STRING)), uuid -> uuid);
     className = ArkName.from(node.path("class").asText());
     item = node.path("item").asBoolean();
 
@@ -314,10 +320,14 @@ public class GameObject implements PropertyContainer, NameContainer {
   }
 
   public void readBinary(ArkArchive archive) {
-    long uuidMostSig = archive.getLong();
-    long uuidLeastSig = archive.getLong();
+    long highOfHigh = archive.getInt();
+    long lowOfHigh = archive.getInt();
+    long high = (highOfHigh << 32) + lowOfHigh;
+    long highOfLow = archive.getInt();
+    long lowOfLow = archive.getInt();
+    long low = (highOfLow << 32) + lowOfLow;
 
-    uuid = UUID_CACHE.computeIfAbsent(new LongLong(uuidMostSig, uuidLeastSig), ll -> new UUID(ll.getHigh(), ll.getLow()));
+    uuid = uuidCache.computeIfAbsent(new UUID(high, low), uuid -> uuid);
 
     className = archive.getName();
 
@@ -453,6 +463,38 @@ public class GameObject implements PropertyContainer, NameContainer {
     if (extraData instanceof NameContainer) {
       ((NameContainer) extraData).collectNames(collector);
     }
+  }
+
+  public GameObject getParent() {
+    return parent;
+  }
+
+  public void setParent(GameObject parent) {
+    this.parent = parent;
+  }
+
+  public Map<ArkName, GameObject> getComponents() {
+    return components;
+  }
+
+  public void setComponents(Map<ArkName, GameObject> components) {
+    this.components = components;
+  }
+
+  public void addComponent(GameObject component) {
+    this.components.put(component.getNames().get(0), component);
+  }
+
+  public boolean hasParentNames() {
+    return names.size() > 1;
+  }
+
+  public List<ArkName> getParentNames() {
+    return names.subList(1, names.size());
+  }
+
+  public static void clearUUIDCache() {
+    uuidCache.clear();
   }
 
 }

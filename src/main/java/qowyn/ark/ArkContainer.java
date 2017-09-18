@@ -7,16 +7,22 @@ import java.nio.channels.FileChannel;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.JsonNode;
 
 import qowyn.ark.arrays.ArkArrayInt8;
 import qowyn.ark.arrays.ArkArrayUInt8;
+import qowyn.ark.types.ArkName;
 
-public class ArkContainer extends FileFormatBase implements GameObjectContainer {
+public class ArkContainer extends FileFormatBase implements GameObjectContainerMixin {
 
   private final ArrayList<GameObject> objects = new ArrayList<>();
+
+  private final Map<Integer, Map<List<ArkName>, GameObject>> objectMap = new HashMap<>();
 
   public ArkContainer() {}
 
@@ -62,8 +68,10 @@ public class ArkContainer extends FileFormatBase implements GameObjectContainer 
   public void readBinary(ArkArchive archive, ReadingOptions options) {
     int objectCount = archive.getInt();
 
+    objects.clear();
+    objectMap.clear();
     for (int i = 0; i < objectCount; i++) {
-      objects.add(new GameObject(archive));
+      addObject(new GameObject(archive), options.getBuildComponentTree());
     }
 
     for (int i = 0; i < objectCount; i++) {
@@ -118,20 +126,17 @@ public class ArkContainer extends FileFormatBase implements GameObjectContainer 
 
   @Override
   public void readJson(JsonNode node, ReadingOptions options) {
-    objects.clear();
 
+    objects.clear();
+    objectMap.clear();
     if (node.isArray()) {
-      int id = 0;
       for (JsonNode jsonObject : node) {
-        objects.add(new GameObject(jsonObject));
-        objects.get(id).setId(id++); // Set id and increase afterwards
+        addObject(new GameObject(jsonObject), options.getBuildComponentTree());
       }
     } else {
       if (node.hasNonNull("objects")) {
-        int id = 0;
         for (JsonNode jsonObject : node.get("objects")) {
-          objects.add(new GameObject(jsonObject));
-          objects.get(id).setId(id++); // Set id and increase afterwards
+          addObject(new GameObject(jsonObject), options.getBuildComponentTree());
         }
       }
     }
@@ -148,8 +153,14 @@ public class ArkContainer extends FileFormatBase implements GameObjectContainer 
     generator.writeEndArray();
   }
 
+  @Override
   public ArrayList<GameObject> getObjects() {
     return objects;
+  }
+
+  @Override
+  public Map<Integer, Map<List<ArkName>, GameObject>> getObjectMap() {
+    return objectMap;
   }
 
   private ByteBuffer toBuffer() {

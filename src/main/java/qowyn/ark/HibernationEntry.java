@@ -2,8 +2,10 @@ package qowyn.ark;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import com.fasterxml.jackson.core.JsonGenerator;
@@ -11,7 +13,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 
 import qowyn.ark.types.ArkName;
 
-public class HibernationEntry {
+public class HibernationEntry implements GameObjectContainerMixin {
 
   private float x;
 
@@ -26,6 +28,8 @@ public class HibernationEntry {
   private final ArrayList<ArkName> zoneVolumes = new ArrayList<>();
 
   private final ArrayList<GameObject> objects = new ArrayList<>();
+
+  private final Map<Integer, Map<List<ArkName>, GameObject>> objectMap = new HashMap<>();
 
   private int unkInt1;
 
@@ -42,22 +46,22 @@ public class HibernationEntry {
   public HibernationEntry() {
   }
 
-  public HibernationEntry(ArkArchive archive, boolean loadProperties) {
-    readBinary(archive, loadProperties);
+  public HibernationEntry(ArkArchive archive, ReadingOptions options) {
+    readBinary(archive, options);
   }
 
-  public HibernationEntry(JsonNode node, boolean loadProperties) {
-    readJson(node, loadProperties);
+  public HibernationEntry(JsonNode node, ReadingOptions options) {
+    readJson(node, options);
   }
 
-  public void readBinary(ArkArchive archive, boolean loadProperties) {
+  public void readBinary(ArkArchive archive, ReadingOptions options) {
     x = archive.getFloat();
     y = archive.getFloat();
     z = archive.getFloat();
     unkByte = archive.getByte();
     unkFloat = archive.getFloat();
 
-    if (loadProperties) {
+    if (options.getHibernationObjectProperties()) {
       ArkArchive nameArchive = archive.slice(archive.getInt());
       readBinaryNameTable(nameArchive);
     } else {
@@ -69,7 +73,7 @@ public class HibernationEntry {
     }
 
     ArkArchive objectArchive = archive.slice(archive.getInt());
-    readBinaryObjects(objectArchive);
+    readBinaryObjects(objectArchive, options);
 
     unkInt1 = archive.getInt();
     classIndex = archive.getInt();
@@ -96,13 +100,14 @@ public class HibernationEntry {
     }
   }
 
-  protected void readBinaryObjects(ArkArchive archive) {
+  protected void readBinaryObjects(ArkArchive archive, ReadingOptions options) {
     int count = archive.getInt();
 
     objects.clear();
     objects.ensureCapacity(count);
+    objectMap.clear();
     for (int index = 0; index < count; index++) {
-      objects.add(new GameObject(archive));
+      addObject(new GameObject(archive), options.getBuildComponentTree());
     }
 
     if (nameTable != null) {
@@ -178,7 +183,7 @@ public class HibernationEntry {
     return size + nameTableSize + objectsSize;
   }
 
-  public void readJson(JsonNode node, boolean loadProperties) {
+  public void readJson(JsonNode node, ReadingOptions options) {
     x = (float) node.path("x").asDouble();
     y = (float) node.path("y").asDouble();
     z = (float) node.path("z").asDouble();
@@ -193,9 +198,10 @@ public class HibernationEntry {
     }
 
     objects.clear();
+    objectMap.clear();
     if (node.hasNonNull("objects")) {
       for (JsonNode object: node.path("objects")) {
-        objects.add(new GameObject(object, loadProperties));
+        addObject(new GameObject(object, options.getHibernationObjectProperties()), options.getBuildComponentTree());
       }
     }
 
@@ -290,8 +296,14 @@ public class HibernationEntry {
     return zoneVolumes;
   }
 
+  @Override
   public ArrayList<GameObject> getObjects() {
     return objects;
+  }
+
+  @Override
+  public Map<Integer, Map<List<ArkName>, GameObject>> getObjectMap() {
+    return objectMap;
   }
 
 }

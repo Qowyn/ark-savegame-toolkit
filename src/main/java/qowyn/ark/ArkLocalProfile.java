@@ -7,14 +7,17 @@ import java.nio.channels.FileChannel;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.JsonNode;
 
 import qowyn.ark.properties.Property;
+import qowyn.ark.types.ArkName;
 
-public class ArkLocalProfile extends FileFormatBase implements PropertyContainer, GameObjectContainer {
+public class ArkLocalProfile extends FileFormatBase implements PropertyContainer, GameObjectContainerMixin {
 
   private static final int UNKNOWN_DATA_2_SIZE = 0xc;
 
@@ -25,6 +28,8 @@ public class ArkLocalProfile extends FileFormatBase implements PropertyContainer
   private byte[] unknownData2;
 
   private final ArrayList<GameObject> objects = new ArrayList<>();
+
+  private final Map<Integer, Map<List<ArkName>, GameObject>> objectMap = new HashMap<>();
 
   private GameObject localProfile;
 
@@ -66,8 +71,10 @@ public class ArkLocalProfile extends FileFormatBase implements PropertyContainer
 
     int objectCount = archive.getInt();
 
+    objects.clear();
+    objectMap.clear();
     for (int i = 0; i < objectCount; i++) {
-      objects.add(new GameObject(archive));
+      addObject(new GameObject(archive), options.getBuildComponentTree());
     }
 
     for (int i = 0; i < objectCount; i++) {
@@ -160,15 +167,17 @@ public class ArkLocalProfile extends FileFormatBase implements PropertyContainer
   @Override
   public void readJson(JsonNode node, ReadingOptions options) {
     localProfileVersion = node.path("localProfileVersion").asInt();
-    objects.clear();
 
+    objects.clear();
+    objectMap.clear();
     if (node.hasNonNull("localProfile")) {
-      setLocalProfile(new GameObject(node.get("localProfile")));
+      addObject(new GameObject(node.get("localProfile")), options.getBuildComponentTree());
+      localProfile = objects.get(0);
     }
 
     if (node.hasNonNull("objects")) {
-      for (JsonNode profileObject : node.get("objects")) {
-        objects.add(new GameObject(profileObject));
+      for (JsonNode objectNode : node.get("objects")) {
+        addObject(new GameObject(objectNode), options.getBuildComponentTree());
       }
     }
 
@@ -233,8 +242,14 @@ public class ArkLocalProfile extends FileFormatBase implements PropertyContainer
     this.localProfileVersion = localProfileVersion;
   }
 
+  @Override
   public ArrayList<GameObject> getObjects() {
     return objects;
+  }
+
+  @Override
+  public Map<Integer, Map<List<ArkName>, GameObject>> getObjectMap() {
+    return objectMap;
   }
 
   public GameObject getLocalProfile() {

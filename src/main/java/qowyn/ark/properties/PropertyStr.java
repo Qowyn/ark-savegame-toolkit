@@ -28,7 +28,7 @@ public class PropertyStr extends PropertyBase<String> {
 
   public PropertyStr(JsonNode node) {
     super(node);
-    value = node.path("value").asText();
+    value = node.path("value").textValue();
   }
 
   @Override

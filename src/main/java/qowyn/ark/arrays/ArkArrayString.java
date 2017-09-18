@@ -29,7 +29,7 @@ public class ArkArrayString extends ArrayList<String> implements ArkArray<String
   }
 
   public ArkArrayString(JsonNode node, PropertyArray property) {
-    node.forEach(n -> this.add(n.asText()));
+    node.forEach(n -> this.add(n.textValue()));
   }
 
   @Override

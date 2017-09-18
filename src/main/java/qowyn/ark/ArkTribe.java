@@ -7,18 +7,23 @@ import java.nio.channels.FileChannel;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.JsonNode;
 
 import qowyn.ark.properties.Property;
+import qowyn.ark.types.ArkName;
 
-public class ArkTribe extends FileFormatBase implements PropertyContainer, GameObjectContainer {
+public class ArkTribe extends FileFormatBase implements PropertyContainer, GameObjectContainerMixin {
 
   private int tribeVersion;
 
   private final ArrayList<GameObject> objects = new ArrayList<>();
+
+  private final Map<Integer, Map<List<ArkName>, GameObject>> objectMap = new HashMap<>();
 
   private GameObject tribe;
 
@@ -50,8 +55,10 @@ public class ArkTribe extends FileFormatBase implements PropertyContainer, GameO
 
     int tribesCount = archive.getInt();
 
+    objects.clear();
+    objectMap.clear();
     for (int i = 0; i < tribesCount; i++) {
-      objects.add(new GameObject(archive));
+      addObject(new GameObject(archive), options.getBuildComponentTree());
     }
 
     for (int i = 0; i < tribesCount; i++) {
@@ -112,15 +119,17 @@ public class ArkTribe extends FileFormatBase implements PropertyContainer, GameO
   @Override
   public void readJson(JsonNode node, ReadingOptions options) {
     tribeVersion = node.path("tribeVersion").asInt();
-    objects.clear();
 
+    objects.clear();
+    objectMap.clear();
     if (node.hasNonNull("tribe")) {
-      setTribe(new GameObject(node.get("tribe")));
+      addObject(new GameObject(node.get("tribe")), options.getBuildComponentTree());
+      tribe = objects.get(0);
     }
 
     if (node.hasNonNull("objects")) {
-      for (JsonNode tribeObject : node.get("objects")) {
-        objects.add(new GameObject(tribeObject));
+      for (JsonNode objectNode : node.get("objects")) {
+        addObject(new GameObject(objectNode), options.getBuildComponentTree());
       }
     }
   }
@@ -160,8 +169,14 @@ public class ArkTribe extends FileFormatBase implements PropertyContainer, GameO
     this.tribeVersion = tribeVersion;
   }
 
+  @Override
   public ArrayList<GameObject> getObjects() {
     return objects;
+  }
+
+  @Override
+  public Map<Integer, Map<List<ArkName>, GameObject>> getObjectMap() {
+    return objectMap;
   }
 
   public GameObject getTribe() {

@@ -1,5 +1,6 @@
 package qowyn.ark;
 
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 
@@ -25,5 +26,7 @@ public interface GameObjectContainer extends Iterable<GameObject> {
   public default Iterator<GameObject> iterator() {
     return getObjects().iterator();
   }
+
+  public static final GameObjectContainer EMPTY_CONTAINER = () -> Collections.emptyList();
 
 }
