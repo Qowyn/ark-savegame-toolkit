@@ -146,7 +146,7 @@ public class ArkProfile extends FileFormatBase implements PropertyContainer, Gam
       generator.writeNull();
     }
 
-    if (objects.size() > 1) {
+    if (objects.size() > (profile == null ? 0 : 1)) {
       generator.writeArrayFieldStart("objects");
       for (GameObject object : objects) {
         if (object == profile) {

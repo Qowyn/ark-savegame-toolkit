@@ -146,7 +146,7 @@ public class ArkCloudInventory extends FileFormatBase implements PropertyContain
       generator.writeNull();
     }
 
-    if (objects.size() > 1) {
+    if (objects.size() > (inventoryData == null ? 0 : 1)) {
       generator.writeArrayFieldStart("objects");
 
       for (GameObject object : objects) {

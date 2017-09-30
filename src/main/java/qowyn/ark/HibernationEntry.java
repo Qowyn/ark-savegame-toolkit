@@ -12,6 +12,7 @@ import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.JsonNode;
 
 import qowyn.ark.types.ArkName;
+import qowyn.ark.types.ObjectReference;
 
 public class HibernationEntry implements GameObjectContainerMixin {
 
@@ -304,6 +305,19 @@ public class HibernationEntry implements GameObjectContainerMixin {
   @Override
   public Map<Integer, Map<List<ArkName>, GameObject>> getObjectMap() {
     return objectMap;
+  }
+
+  @Override
+  public GameObject getObject(ObjectReference reference) {
+    if (reference == null || !reference.isId()) {
+      return null;
+    }
+
+    if (reference.getObjectId() > 0 && reference.getObjectId() <= getObjects().size()) {
+      return getObjects().get(reference.getObjectId() - 1);
+    } else {
+      return null;
+    }
   }
 
 }

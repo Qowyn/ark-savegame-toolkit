@@ -11,7 +11,7 @@ public interface GameObjectContainer extends Iterable<GameObject> {
   public List<GameObject> getObjects();
 
   public default GameObject getObject(ObjectReference reference) {
-    if (reference == null || reference.getObjectType() != ObjectReference.TYPE_ID) {
+    if (reference == null || !reference.isId()) {
       return null;
     }
 
